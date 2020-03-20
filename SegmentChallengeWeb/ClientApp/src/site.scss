@@ -1,0 +1,199 @@
+body {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 8px 8px 8px 36px;
+  min-width: 200px;
+
+  overflow: auto;
+}
+
+div#root {
+  font-family: 'Verdana', sans-serif;
+
+  h1, h2, h3, h4, h5 {
+    font-family: 'Sedgwick Ave', sans-serif;
+
+    a {
+      text-decoration: none;
+    }
+  }
+
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  #layout_title {
+    margin-top: 28px;
+    float: left;
+
+    a {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+
+      #layout_logo {
+        margin-right: 0.5em;
+      }
+
+      &:visited {
+        color: inherit;
+      }
+    }
+  }
+
+  #layout_profile {
+    #layout_greeting {
+      display: inline-block;
+      margin-left: 8px;
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+
+    position: absolute;
+    right: 0;
+  }
+
+  &::after {
+    content: ' ';
+    display: block;
+    clear: both;
+  }
+}
+
+.join-button {
+  border-radius: 4px;
+  color: white;
+  text-decoration: none;
+  margin-left: 8px;
+  margin-right: 8px;
+  background-color: #63b55d;
+  font-weight: bold;
+  vertical-align: baseline;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    background-color: #418241;
+  }
+
+  &::before {
+    display: inline-block;
+    content: 'person_add';
+    font-family: 'Material Icons';
+    font-size: 20px;
+    max-width: 20px;
+    max-height: 20px;
+    overflow: hidden;
+    margin-right: 0.2em;
+    vertical-align: bottom;
+  }
+}
+
+a.strava-logout, a.strava-login {
+  font-family: "MaisonNeue", "Segoe UI", "Helvetica Neue", "system-ui", "BlinkMacSystemFont", "Roboto", "Arial", sans-serif;
+  display: inline-block;
+  border-radius: 4px;
+  color: white;
+  text-decoration: none;
+  padding: 8px;
+  margin-left: 8px;
+  margin-right: 8px;
+
+  &::before {
+    display: inline-block;
+    font-family: 'Material Icons';
+    font-size: 20px;
+    max-width: 20px;
+    max-height: 20px;
+    overflow: hidden;
+    margin-right: 0.2em;
+    vertical-align: bottom;
+  }
+}
+
+a.strava-logout {
+  background-color: #626262;
+
+  &:hover {
+    background-color: #373737;
+  }
+
+  &::before {
+    content: 'launch';
+  }
+}
+
+a.strava-login {
+  background-color: #fc5200;
+
+  &:hover {
+    background-color: #cc4200;
+  }
+}
+
+#layout_main {
+  flex-grow: 1;
+}
+
+#challenge_title {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  h2 {
+    margin-right: 0.5em;
+  }
+
+  .effort-link {
+    font-size: small;
+    color: dimgray;
+
+    &:visited {
+      color: dimgray;
+    }
+
+    &:hover {
+      color: blue;
+    }
+  }
+}
+
+.main-table {
+  border-collapse: collapse;
+
+  thead td {
+    background-color: lightgray;
+    font-weight: bold;
+  }
+
+  td {
+    border: 1px solid gray;
+    padding: 8px;
+  }
+}
+
+td.kom {
+  &::before {
+    display: inline-block;
+    content: 'star';
+    font-family: 'Material Icons';
+    font-size: 20px;
+    max-width: 20px;
+    max-height: 20px;
+    overflow: hidden;
+    margin-right: 0.2em;
+    vertical-align: bottom;
+    color: #f3c361;
+  }
+}
+
+footer {
+  padding-top: 8px;
+}
