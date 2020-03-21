@@ -117,12 +117,6 @@ namespace SegmentChallengeWeb {
                     pattern: "api/{controller}/{action=Index}/{id?}");
             });
 
-            // app.UseMvc(routes => {
-            //     routes.MapRoute(
-            //         name: "default",
-            //         template: "api/{controller}/{action=Index}/{id?}");
-            // });
-
             app.UseSpa(spa => {
                 spa.Options.SourcePath = "ClientApp";
 

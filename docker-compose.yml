@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  segment-challenge-web:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    container_name: segment-web
+    restart: always
+    environment:
+      - REACT_APP_SITE_TITLE=${REACT_APP_SITE_TITLE-Segment Challenge}
+      - REACT_APP_SITE_LOGO=${REACT_APP_SITE_LOGO}
+      - REACT_APP_SITE_FOOTER=${REACT_APP_SITE_FOOTER}
+      - MYSQL__HOST=segment-challenge-sql
+      - MYSQL__PORT=3306
+      - MYSQL__USER=root
+      - MYSQL__PASSWORD=${MYSQL__PASSWORD-segmentchallenge}
+    ports:
+      - "80:80"
+    networks:
+      - services
+    depends_on:
+      - segment-challenge-sql
+
+  segment-challenge-sql:
+    image: mysql:5.7
+    container_name: segment-challenge-sql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL__PASSWORD-segmentchallenge}
+    volumes:
+      - segment-challenge-mysql-volume:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - services
+
+networks:
+  services:
+
+volumes:
+  segment-challenge-mysql-volume:
+    external: true

@@ -27,6 +27,9 @@ namespace SegmentChallengeWeb {
                                     options.LogToStandardErrorThreshold = LogLevel.Trace;
                                 });
                         })
+                        .ConfigureKestrel((context, options) => {
+                            options.Configure(context.Configuration.GetSection("Kestrel"));
+                        })
                         .UseStartup<Startup>();
                 });
         }
