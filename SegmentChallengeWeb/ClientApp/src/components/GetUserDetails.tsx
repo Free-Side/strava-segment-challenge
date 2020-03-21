@@ -77,7 +77,7 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
                 <div className="dialog">
                     <h2>Complete Profile</h2>
                     <p>In order to participate in challenges we need your birth date and gender.</p>
-                    <div>
+                    <div className="user-detail-row">
                         <label>Month:
                             <select value={this.state.month} onChange={(e) => this.handleMonthChanged(e)}>
                                 <option value={undefined}></option>
@@ -98,7 +98,7 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
                             </select>
                         </label>
                     </div>
-                    <div>
+                    <div className="user-detail-row">
                         <label>Gender:
                             <select value={this.state.gender} onChange={(e) => this.handleGenderChanged(e)}>
                                 <option value={undefined}></option>
@@ -107,9 +107,10 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
                             </select>
                         </label>
                     </div>
-                    <div className="flow-row">
+                    <div id="save_cancel_user_details" className="flow-row">
                         <LogoutButton/>
-                        <button disabled={!(this.state.year && this.state.month && this.state.day && this.state.gender)}
+                        <button id="save_user_details"
+                                disabled={!(this.state.year && this.state.month && this.state.day && this.state.gender)}
                                 onClick={() => this.saveProfile()}>Save
                         </button>
                     </div>

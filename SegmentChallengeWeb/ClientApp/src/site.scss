@@ -73,6 +73,7 @@ header {
   margin-left: 8px;
   margin-right: 8px;
   background-color: #63b55d;
+  font-size: inherit;
   font-weight: bold;
   vertical-align: baseline;
   padding: 8px;
@@ -151,6 +152,14 @@ a.strava-login {
     margin-right: 0.5em;
   }
 
+  a#strava_segment_link {
+    color: inherit;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
   .effort-link {
     font-size: small;
     color: dimgray;
@@ -196,4 +205,64 @@ td.kom {
 
 footer {
   padding-top: 8px;
+}
+
+.window-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0,0,0,0.7);
+}
+
+.dialog {
+  background-color: white;
+  box-shadow: 5px 5px 10px black;
+  margin-left: auto;
+  margin-right: auto;
+  width: 500px;
+  max-width: 100%;
+  padding: 16px;
+}
+
+.user-detail-row {
+  margin-bottom: 32px;
+
+  label {
+    margin-right: 16px;
+  }
+
+  select {
+    margin-left: 8px;
+    font-size: inherit;
+  }
+}
+
+#save_cancel_user_details {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+
+#save_user_details {
+  border-radius: 4px;
+  color: white;
+  text-decoration: none;
+  margin-left: 8px;
+  margin-right: 8px;
+  background-color: #63b55d;
+  vertical-align: baseline;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  font-size: inherit;
+
+  &:disabled {
+    background-color: lightgrey;
+  }
+
+  &:hover {
+    background-color: #418241;
+  }
 }

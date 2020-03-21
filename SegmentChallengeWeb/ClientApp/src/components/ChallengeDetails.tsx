@@ -63,7 +63,7 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
         return this.props.currentChallenge && (
             <div>
                 <div id="challenge_title">
-                    <h2>{this.props.currentChallenge.displayName}</h2>
+                    <h2><a id="strava_segment_link" href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`} target="_blank" title="View Segment on Strava">{this.props.currentChallenge.displayName}</a></h2>
                     {(this.props.isAthleteRegistered === false) && <JoinButton/>}
                     {this.state.bestEffort &&
                     <Link to={({pathname: this.props.location.pathname, hash: `effort_${this.state.bestEffort}`})}
