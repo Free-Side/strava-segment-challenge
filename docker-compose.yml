@@ -5,7 +5,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    container_name: segment-web
+    container_name: segment-challenge-web
     restart: always
     environment:
       - REACT_APP_SITE_TITLE=${REACT_APP_SITE_TITLE-Segment Challenge}
