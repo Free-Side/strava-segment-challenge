@@ -121,38 +121,40 @@ export const actionCreators = {
                     });
                 }
 
-                // Fetch Registration Status
-                fetch(`api/challenges/${selectedChallenge}/registration`, {credentials: 'same-origin'})
-                    .then(async response => {
-                        if (response.ok) {
-                            const data = await response.json();
-                            dispatch({
-                                type: ChallengeDetailActions.RegistrationStatusReceived,
-                                selectedChallengeName: selectedChallenge,
-                                registrationStatus: data.registered
-                            });
-                        } else {
-                            let detail: string;
-                            if (hasContent(response)) {
-                                detail = await response.text();
+                if (appState.login?.loggedInUser) {
+                    // Fetch Registration Status
+                    fetch(`api/challenges/${selectedChallenge}/registration`, {credentials: 'same-origin'})
+                        .then(async response => {
+                            if (response.ok) {
+                                const data = await response.json();
+                                dispatch({
+                                    type: ChallengeDetailActions.RegistrationStatusReceived,
+                                    selectedChallengeName: selectedChallenge,
+                                    registrationStatus: data.registered
+                                });
                             } else {
-                                detail = 'Unknown';
+                                let detail: string;
+                                if (hasContent(response)) {
+                                    detail = await response.text();
+                                } else {
+                                    detail = 'Unknown';
+                                }
+
+                                console.error(`Error fetching registration status. Status: ${response.status}, Status Description: ${response.statusText}, Detail: ${detail}`);
+
+                                dispatch({
+                                    type: ChallengeDetailActions.ServerRequestError,
+                                    message: generateErrorMessage('registration status', response.status, response.statusText, detail)
+                                });
                             }
-
-                            console.error(`Error fetching registration status. Status: ${response.status}, Status Description: ${response.statusText}, Detail: ${detail}`);
-
+                        })
+                        .catch(error => {
                             dispatch({
                                 type: ChallengeDetailActions.ServerRequestError,
-                                message: generateErrorMessage('registration status', response.status, response.statusText, detail)
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        dispatch({
-                            type: ChallengeDetailActions.ServerRequestError,
-                            message: error
-                        })
-                    });
+                                message: error
+                            })
+                        });
+                }
 
                 // Fetch Age Groups
                 fetch(`api/challenges/${selectedChallenge}/age_groups`)

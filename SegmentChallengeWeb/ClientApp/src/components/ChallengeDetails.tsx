@@ -65,11 +65,12 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                 <div id="challenge_title">
                     <h2><a id="strava_segment_link" href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`} target="_blank" title="View Segment on Strava">{this.props.currentChallenge.displayName}</a></h2>
                     {(this.props.isAthleteRegistered === false) && <JoinButton/>}
-                    {this.state.bestEffort &&
-                    <Link to={({pathname: this.props.location.pathname, hash: `effort_${this.state.bestEffort}`})}
-                          className="effort-link">
-                        Your Effort
-                    </Link>}
+                    {this.state.bestEffort ?
+                        <Link to={({pathname: this.props.location.pathname, hash: `effort_${this.state.bestEffort}`})}
+                              className="effort-link">
+                            Your Effort
+                        </Link> :
+                        (this.props.isAthleteRegistered === true && <span>You have joined. Check back later for your efforts.</span>)}
                 </div>
                 <h3>{this.props.selectedCategory.description}</h3>
                 <div className="flow-row">
