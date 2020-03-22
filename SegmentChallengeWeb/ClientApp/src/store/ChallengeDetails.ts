@@ -19,7 +19,14 @@ export interface Effort {
     isKOM: boolean
 }
 
-export type Category = { maximumAge?: number, gender?: string, description: string };
+export interface Athlete {
+    id: number,
+    displayName: string,
+    gender: string,
+    age: number
+}
+
+export type Category = { minimumAge?: number, maximumAge?: number, gender?: string, description: string };
 
 export interface ChallengeDetailsState {
     selectedChallengeName?: string,
@@ -28,6 +35,7 @@ export interface ChallengeDetailsState {
     selectedCategory: Category,
     ageGroups?: AgeGroup[],
     allEfforts?: Effort[],
+    allAthletes?: Athlete[],
     errorMessage?: string
 }
 
@@ -39,6 +47,7 @@ export enum ChallengeDetailActions {
     RegistrationStatusReceived = 'REGISTRATION_STATUS_RECEIVED',
     AgeGroupsReceived = 'AGE_GROUPS_RECEIVED',
     EffortsReceived = 'EFFORTS_RECEIVED',
+    AthletesReceived = 'ATHLETES_RECEIVED',
     ServerRequestError = 'ERROR_FETCHING_DATA'
 }
 
@@ -75,6 +84,12 @@ export interface EffortsReceived {
     efforts: Effort[]
 }
 
+export interface AthletesReceived {
+    type: ChallengeDetailActions.AthletesReceived,
+    selectedChallengeName: string,
+    athletes: Athlete[]
+}
+
 export interface HasMessage {
     message: string
 }
@@ -90,6 +105,7 @@ type KnownAction =
     | RegistrationStatusReceived
     | AgeGroupsReceived
     | EffortsReceived
+    | AthletesReceived
     | ServerRequestError
     | ChallengeListStore.RequestChallengeListAction
     | ChallengeListStore.ReceiveChallengeListAction
@@ -221,6 +237,39 @@ export const actionCreators = {
                             message: error
                         })
                     });
+
+                // Fetch Athletes
+                fetch(`api/challenges/${selectedChallenge}/athletes`)
+                    .then(async response => {
+                        if (response.ok) {
+                            const data = await response.json();
+                            dispatch({
+                                type: ChallengeDetailActions.AthletesReceived,
+                                selectedChallengeName: selectedChallenge,
+                                athletes: data
+                            });
+                        } else {
+                            let detail: string;
+                            if (hasContent(response)) {
+                                detail = await response.text();
+                            } else {
+                                detail = 'Unknown';
+                            }
+
+                            console.error(`Error fetching athletes. Status: ${response.status}, Status Description: ${response.statusText}, Detail: ${detail}`);
+
+                            dispatch({
+                                type: ChallengeDetailActions.ServerRequestError,
+                                message: generateErrorMessage('athletes', response.status, response.statusText, detail)
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        dispatch({
+                            type: ChallengeDetailActions.ServerRequestError,
+                            message: error
+                        })
+                    });
             }
         }
     },
@@ -243,6 +292,16 @@ export const actionCreators = {
                                 selectedChallengeName: selectedChallenge,
                                 registrationStatus: data.registered
                             });
+
+                            // Immediately initiate a refresh
+                            fetch(`api/challenges/${selectedChallenge}/refresh`, {method: 'POST', credentials: 'same-origin'})
+                                .then(response => {
+                                    if (response.ok) {
+                                        console.log('Refresh started.');
+                                    } else {
+                                        console.log(`Refresh failed to start: ${response.status}`)
+                                    }
+                                });
                         } else {
                             let detail: string;
                             if (hasContent(response)) {
@@ -318,6 +377,13 @@ export const reducer: Reducer<ChallengeDetailsState> =
                 const effortsReceivedAction = action as EffortsReceived;
                 if (effortsReceivedAction.selectedChallengeName === state.selectedChallengeName) {
                     return {...state, allEfforts: effortsReceivedAction.efforts};
+                }
+
+                break;
+            case ChallengeDetailActions.AthletesReceived:
+                const athletesReceivedAction = action as AthletesReceived;
+                if (athletesReceivedAction.selectedChallengeName === state.selectedChallengeName) {
+                    return {...state, allAthletes: athletesReceivedAction.athletes};
                 }
 
                 break;

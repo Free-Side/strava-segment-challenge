@@ -170,6 +170,7 @@ namespace SegmentChallengeWeb.Controllers {
             await using var dbContext = new SegmentChallengeDbContext(connection);
 
             var challengeTable = dbContext.Set<Challenge>();
+            var registrationTable = dbContext.Set<ChallengeRegistration>();
             var ageGroupsTable = dbContext.Set<AgeGroup>();
             var effortsTable = dbContext.Set<Effort>();
             var athleteTable = dbContext.Set<Athlete>();
@@ -203,6 +204,17 @@ namespace SegmentChallengeWeb.Controllers {
                             Effort = e,
                             Athlete = a
                         })
+                    .Join(
+                        registrationTable,
+                        row => row.Athlete.Id,
+                        r => r.AthleteId,
+                        (row, reg) =>
+                            new {
+                                Effort = row.Effort,
+                                Athlete = row.Athlete,
+                                Registration = reg
+                            })
+                    .Where(row => row.Registration.ChallengeId == challenge.Id)
                     .OrderBy(row => row.Athlete.Id)
                     .ToListAsync(cancellationToken: cancellationToken);
 
@@ -241,13 +253,16 @@ namespace SegmentChallengeWeb.Controllers {
 
             (String Gender, Int32 MaxAge) currentCategory = (null, 0);
 
-            foreach (var effort in results.OrderBy(e => GetCategory(e.Athlete)).ThenBy(e => e.Effort.ElapsedTime)) {
-                var category = GetCategory(effort.Athlete);
+            foreach (var (effort, athlete) in results.OrderBy(e => GetCategory(e.Athlete)).ThenBy(e => e.Effort.ElapsedTime)) {
+                var category = GetCategory(athlete);
                 if (category != currentCategory) {
-                    resultsByCategory.Add((effort.Effort, effort.Athlete, true));
+                    resultsByCategory.Add((effort, athlete, true));
                     currentCategory = category;
+                } else if (resultsByCategory.Count > 0 &&
+                           resultsByCategory[^1].Effort.ElapsedTime == effort.ElapsedTime) {
+                    resultsByCategory.Add((effort, athlete, true));
                 } else {
-                    resultsByCategory.Add((effort.Effort, effort.Athlete, false));
+                    resultsByCategory.Add((effort, athlete, false));
                 }
             }
 
@@ -270,6 +285,49 @@ namespace SegmentChallengeWeb.Controllers {
             );
         }
 
+        [HttpGet("{name}/athletes")]
+        public async Task<IActionResult> AllAthletes(String name, CancellationToken cancellationToken) {
+            await using var connection = this.dbConnectionFactory();
+            await connection.OpenAsync(cancellationToken);
+
+            await using var dbContext = new SegmentChallengeDbContext(connection);
+
+            var challengeTable = dbContext.Set<Challenge>();
+            var athleteTable = dbContext.Set<Athlete>();
+            var registrationTable = dbContext.Set<ChallengeRegistration>();
+
+            var challenge = await challengeTable.SingleOrDefaultAsync(
+                c => c.Name == name,
+                cancellationToken
+            );
+
+            if (challenge == null) {
+                return NotFound();
+            }
+
+            var athletes = await
+                athleteTable
+                    .Join(
+                        registrationTable,
+                        a => a.Id,
+                        r => r.AthleteId,
+                        (a, r) => new { Athlete = a, Registration = r })
+                    .Where(row => row.Registration.ChallengeId == challenge.Id)
+                    .Select(row => row.Athlete)
+                    .ToListAsync(cancellationToken);
+
+            return new JsonResult(
+                athletes
+                    .Where(a => a.Gender.HasValue && a.BirthDate.HasValue)
+                    .Select(a => new {
+                        id = a.Id,
+                        displayName = a.GetDisplayName(),
+                        gender = a.Gender.ToString(),
+                        age = challenge.StartDate.Year - a.BirthDate.Value.Year
+                    })
+            );
+        }
+
         [HttpPost("{name}/refresh_all")]
         public async Task<IActionResult> RefreshAllEfforts(
             String name,
@@ -285,7 +343,17 @@ namespace SegmentChallengeWeb.Controllers {
             await connection.OpenAsync(cancellationToken);
 
             await using var dbContext = new SegmentChallengeDbContext(connection);
+            var challengeTable = dbContext.Set<Challenge>();
             var updatesTable = dbContext.Set<Update>();
+
+            var challenge = await challengeTable.SingleOrDefaultAsync(
+                c => c.Name == name,
+                cancellationToken
+            );
+
+            if (challenge == null) {
+                return NotFound();
+            }
 
             var pendingUpdates = await
                 updatesTable
@@ -297,12 +365,12 @@ namespace SegmentChallengeWeb.Controllers {
                 return Content("Another update is already running.");
             }
 
-            var update = updatesTable.Add(new Update());
+            var update = updatesTable.Add(new Update { ChallengeId = challenge.Id});
             await dbContext.SaveChangesAsync(cancellationToken);
 
             var updateId = update.Entity.Id;
 
-            this.taskService.QueueTask<EffortRefreshService>(
+            this.taskService.QueueTask<EffortRefresher>(
                 (service, taskCancellationToken) => service.RefreshEfforts(updateId, name, taskCancellationToken)
             );
 
@@ -322,17 +390,28 @@ namespace SegmentChallengeWeb.Controllers {
             await connection.OpenAsync(cancellationToken);
 
             await using var dbContext = new SegmentChallengeDbContext(connection);
+            var challengeTable = dbContext.Set<Challenge>();
             var updatesTable = dbContext.Set<Update>();
 
+            var challenge = await challengeTable.SingleOrDefaultAsync(
+                c => c.Name == name,
+                cancellationToken
+            );
+
+            if (challenge == null) {
+                return NotFound();
+            }
+
             var update = updatesTable.Add(new Update {
-                AthleteId = identity.UserId
+                AthleteId = identity.UserId,
+                ChallengeId = challenge.Id
             });
 
             await dbContext.SaveChangesAsync(cancellationToken);
 
             var updateId = update.Entity.Id;
 
-            this.taskService.QueueTask<EffortRefreshService>(
+            this.taskService.QueueTask<EffortRefresher>(
                 (service, taskCancellationToken) =>
                     service.RefreshAthleteEfforts(updateId, name, identity.UserId, taskCancellationToken)
             );

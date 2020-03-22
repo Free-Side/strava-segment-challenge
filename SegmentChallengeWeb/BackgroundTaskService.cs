@@ -94,10 +94,12 @@ namespace SegmentChallengeWeb {
                 try {
                     var scope = this.serviceProvider.CreateScope();
 
-                    // Inject the HttpContext from the scope that Queued the task
-                    var scopedHttpContextAccessor =
-                        scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
-                    scopedHttpContextAccessor.HttpContext = new HttpContextWrapper(context);
+                    // Inject the HttpContext from the scope that Queued the task, if available
+                    if (context != null) {
+                        var scopedHttpContextAccessor =
+                            scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>();
+                        scopedHttpContextAccessor.HttpContext = new HttpContextWrapper(context);
+                    }
 
                     var service = scope.ServiceProvider.GetRequiredService<TTaskService>();
 

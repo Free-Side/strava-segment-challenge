@@ -16,17 +16,17 @@ using SegmentChallengeWeb.Models;
 using SegmentChallengeWeb.Persistence;
 
 namespace SegmentChallengeWeb {
-    public class EffortRefreshService {
+    public class EffortRefresher {
         private readonly IOptions<StravaConfiguration> stravaConfiguration;
         private readonly Func<DbConnection> dbConnectionFactory;
         private readonly StravaApiHelper apiHelper;
-        private readonly ILogger<EffortRefreshService> logger;
+        private readonly ILogger<EffortRefresher> logger;
 
-        public EffortRefreshService(
+        public EffortRefresher(
             IOptions<StravaConfiguration> stravaConfiguration,
             Func<DbConnection> dbConnectionFactory,
             StravaApiHelper apiHelper,
-            ILogger<EffortRefreshService> logger) {
+            ILogger<EffortRefresher> logger) {
             this.stravaConfiguration = stravaConfiguration;
             this.dbConnectionFactory = dbConnectionFactory;
             this.apiHelper = apiHelper;
@@ -76,7 +76,9 @@ namespace SegmentChallengeWeb {
                             cr => cr.AthleteId,
                             a => a.Id,
                             (cr, a) => new { Registration = cr, Athlete = a })
-                        .Where(ra => ra.Registration.ChallengeId == challenge.Id && ra.Athlete.Id == athleteId)
+                        .Where(ra =>
+                            ra.Registration.ChallengeId == challenge.Id &&
+                            ra.Athlete.Id == athleteId)
                         .Where(ra => ra.Athlete.Gender != null && ra.Athlete.BirthDate != null)
                         .Select(ra => ra.Athlete)
                         .FirstOrDefaultAsync(cancellationToken);
@@ -91,7 +93,8 @@ namespace SegmentChallengeWeb {
                     return;
                 }
 
-                var update = await updatesTable.FindAsync(new Object[] { updateId }, cancellationToken);
+                var update =
+                    await updatesTable.FindAsync(new Object[] { updateId }, cancellationToken);
                 update.StartTime = DateTime.UtcNow;
                 await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -128,7 +131,6 @@ namespace SegmentChallengeWeb {
             Int32 updateId,
             String challengeName,
             CancellationToken cancellationToken) {
-
             this.logger.LogDebug(
                 "Refreshing all Efforts for Challenge {ChallengeName} (Update {UpdateId})",
                 challengeName,
@@ -142,8 +144,6 @@ namespace SegmentChallengeWeb {
                 await using var dbContext = new SegmentChallengeDbContext(connection);
 
                 var challengeTable = dbContext.Set<Challenge>();
-                var registrationsTable = dbContext.Set<ChallengeRegistration>();
-                var athletesTable = dbContext.Set<Athlete>();
                 var updatesTable = dbContext.Set<Update>();
 
                 var challenge = await challengeTable.SingleOrDefaultAsync(
@@ -160,70 +160,10 @@ namespace SegmentChallengeWeb {
                     return;
                 }
 
-                var athletes = await
-                    registrationsTable
-                        .Join(
-                            athletesTable,
-                            cr => cr.AthleteId,
-                            a => a.Id,
-                            (cr, a) => new { Registration = cr, Athlete = a })
-                        .Where(ra => ra.Registration.ChallengeId == challenge.Id)
-                        .Where(ra => ra.Athlete.Gender != null && ra.Athlete.BirthDate != null)
-                        .Select(ra => ra.Athlete)
-                        .ToListAsync(cancellationToken);
+                var update =
+                    await updatesTable.FindAsync(new Object[] { updateId }, cancellationToken);
 
-                var update = await updatesTable.FindAsync(new Object[] { updateId }, cancellationToken);
-                update.StartTime = DateTime.UtcNow;
-                await dbContext.SaveChangesAsync(cancellationToken);
-
-                foreach (var athlete in athletes) {
-                    this.logger.LogDebug(
-                        "Updating {ChallengeName} efforts for athlete {AthleteId}.",
-                        challengeName,
-                        athlete.Id
-                    );
-
-                    // Update efforts
-                    try {
-                        var (activitiesUpdated, activitiesSkipped, effortsUpdated, error) =
-                            await RefreshAthleteEffortsInternal(
-                                dbContext,
-                                update,
-                                challenge,
-                                athlete,
-                                cancellationToken);
-
-                        update.ActivityCount += activitiesUpdated;
-                        update.SkippedActivityCount += activitiesSkipped;
-                        update.EffortCount += effortsUpdated;
-                        if (error) {
-                            update.ErrorCount++;
-                        }
-                    } catch (TaskCanceledException) {
-                        throw;
-                    } catch (OperationCanceledException) {
-                        throw;
-                    } catch (Exception ex) {
-                        update.ErrorCount++;
-                        this.logger.LogError(
-                            "An unexpected exception occurred while refreshing efforts for Athlete {AthleteId} (Challenge: {ChallengeId}",
-                            2,
-                            ex,
-                            athlete.Id,
-                            challenge.Id
-                        );
-                    }
-
-                    update.AthleteCount++;
-
-                    update.Progress =
-                        (Single)update.AthleteCount / athletes.Count;
-
-                    await dbContext.SaveChangesAsync(cancellationToken);
-                }
-
-                update.EndTime = DateTime.UtcNow;
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await RefreshEffortsInternal(dbContext, challenge, update, cancellationToken);
             } catch (Exception ex) {
                 this.logger.LogError(
                     "Refresh Efforts Failed. Unexpected Exception: {Message}",
@@ -232,6 +172,80 @@ namespace SegmentChallengeWeb {
                     ex.Message
                 );
             }
+        }
+
+        private async Task RefreshEffortsInternal(
+            SegmentChallengeDbContext dbContext,
+            Challenge challenge,
+            Update update,
+            CancellationToken cancellationToken) {
+
+            var registrationsTable = dbContext.Set<ChallengeRegistration>();
+            var athletesTable = dbContext.Set<Athlete>();
+
+            var athletes = await
+                registrationsTable
+                    .Join(
+                        athletesTable,
+                        cr => cr.AthleteId,
+                        a => a.Id,
+                        (cr, a) => new { Registration = cr, Athlete = a })
+                    .Where(ra => ra.Registration.ChallengeId == challenge.Id)
+                    .Where(ra => ra.Athlete.Gender != null && ra.Athlete.BirthDate != null)
+                    .Select(ra => ra.Athlete)
+                    .ToListAsync(cancellationToken);
+
+            update.StartTime = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            foreach (var athlete in athletes) {
+                this.logger.LogDebug(
+                    "Updating {ChallengeName} efforts for athlete {AthleteId}.",
+                    challenge.Name,
+                    athlete.Id
+                );
+
+                // Update efforts
+                try {
+                    var (activitiesUpdated, activitiesSkipped, effortsUpdated, error) =
+                        await RefreshAthleteEffortsInternal(
+                            dbContext,
+                            update,
+                            challenge,
+                            athlete,
+                            cancellationToken);
+
+                    update.ActivityCount += activitiesUpdated;
+                    update.SkippedActivityCount += activitiesSkipped;
+                    update.EffortCount += effortsUpdated;
+                    if (error) {
+                        update.ErrorCount++;
+                    }
+                } catch (TaskCanceledException) {
+                    throw;
+                } catch (OperationCanceledException) {
+                    throw;
+                } catch (Exception ex) {
+                    update.ErrorCount++;
+                    this.logger.LogError(
+                        "An unexpected exception occurred while refreshing efforts for Athlete {AthleteId} (Challenge: {ChallengeId}",
+                        2,
+                        ex,
+                        athlete.Id,
+                        challenge.Id
+                    );
+                }
+
+                update.AthleteCount++;
+
+                update.Progress =
+                    (Single)update.AthleteCount / athletes.Count;
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            update.EndTime = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         private async Task<(Int32 activitiesUpdated, Int32 activitiesSkipped, Int32 effortsUpdated,
@@ -380,7 +394,8 @@ namespace SegmentChallengeWeb {
                                     );
 
                                     // Give up
-                                    return (activitiesUpdated, activitiesSkipped, effortsUpdated, true);
+                                    return (activitiesUpdated, activitiesSkipped, effortsUpdated,
+                                        true);
                                 }
                             }
                         }
@@ -399,6 +414,47 @@ namespace SegmentChallengeWeb {
             }
 
             return (activitiesUpdated, activitiesSkipped, effortsUpdated, false);
+        }
+
+        public async Task RefreshAllChallenges(CancellationToken cancellationToken) {
+            this.logger.LogDebug("RefreshAllChallenges Starting");
+            await using var connection = this.dbConnectionFactory();
+            await connection.OpenAsync(cancellationToken);
+
+            await using var dbContext = new SegmentChallengeDbContext(connection);
+
+            var challengeTable = dbContext.Set<Challenge>();
+            var updatesTable = dbContext.Set<Update>();
+
+            var activeChallenges = await
+                challengeTable
+                    .Where(c => c.EndDate > DateTime.UtcNow)
+                    .ToListAsync(cancellationToken);
+
+            foreach (var challenge in activeChallenges) {
+                var pendingUpdates = await
+                    updatesTable
+                        .Where(u => u.EndTime == null && u.AthleteId == null)
+                        .CountAsync(cancellationToken);
+
+                if (pendingUpdates > 0) {
+                    this.logger.LogWarning(
+                        "Unable to continue auto refresh of challenge efforts because another update is currently running."
+                    );
+                    break;
+                }
+
+                var update = updatesTable.Add(new Update {
+                    ChallengeId = challenge.Id
+                });
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+
+                logger.LogDebug("Refreshing all efforts for challenge {ChallengeId} (Update {UpdateId})", challenge.Id, update.Entity.Id);
+                await this.RefreshEffortsInternal(dbContext, challenge, update.Entity, cancellationToken);
+            }
+
+            this.logger.LogDebug("RefreshAllChallenges Complete");
         }
     }
 

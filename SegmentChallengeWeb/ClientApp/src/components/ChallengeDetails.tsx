@@ -12,6 +12,7 @@ import EffortList from "./EffortList";
 import CategorySelector from "./CategorySelector";
 import {LoginState} from "../store/Login";
 import {Category} from "../store/ChallengeDetails";
+import NoEffortList from "./NoEffortList";
 
 type ChallengeDetailsProps =
     ChallengeDetailStore.ChallengeDetailsState &
@@ -73,11 +74,14 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                         (this.props.isAthleteRegistered === true && <span>You have joined. Check back later for your efforts.</span>)}
                 </div>
                 <h3>{this.props.selectedCategory.description}</h3>
-                <div className="flow-row">
-                    <EffortList/>
+                <div className="flex-row row">
+                    <EffortList />
                     {/*<div className="side-panel">*/}
                     {/*    <CategorySelector />*/}
                     {/*</div>*/}
+                </div>
+                <div className="row">
+                    <NoEffortList />
                 </div>
             </div>
         );

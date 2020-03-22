@@ -14,5 +14,6 @@ namespace SegmentChallengeWeb.Models {
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public Int64? AthleteId { get; set; }
+        public Int32 ChallengeId { get; set; }
     }
 }

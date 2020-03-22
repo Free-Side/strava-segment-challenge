@@ -31,7 +31,6 @@ export function getLoggedInUser() {
     let loggedInUser = undefined;
     if (id_token) {
         loggedInUser = jwt.decode(id_token, '', true);
-        console.log(loggedInUser);
 
         if (typeof loggedInUser.user_data === "string") {
             loggedInUser.user_data = JSON.parse(loggedInUser.user_data);

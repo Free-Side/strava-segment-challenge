@@ -22,6 +22,7 @@
         <TypeScriptCompile Include="ClientApp\src\components\JoinButton.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\LoginButton.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\LogoutButton.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\components\NoEffortList.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\SidePanel.tsx" />
         <TypeScriptCompile Include="ClientApp\src\RestHelper.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\ChallengeDetails.ts" />

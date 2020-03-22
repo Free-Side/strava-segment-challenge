@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -56,7 +55,7 @@ namespace SegmentChallengeWeb {
                         options.ClaimsIssuer = siteConfiguration.BaseUrl;
                     });
 
-            services.AddScoped<Func<DbConnection>>(provider => {
+            services.AddSingleton<Func<DbConnection>>(provider => {
                 var configuration =
                     provider.GetRequiredService<IOptions<MySqlConfiguration>>().Value;
 
@@ -76,15 +75,18 @@ namespace SegmentChallengeWeb {
                 };
             });
 
+            services.AddSingleton<StravaApiHelper>();
+
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
 
             services.AddSingleton<BackgroundTaskService>();
             services.AddHostedService<BackgroundTaskService>();
 
-            services.AddSingleton<StravaApiHelper>();
+            services.AddScoped<EffortRefresher>();
 
-            services.AddScoped<EffortRefreshService>();
+            services.AddSingleton<AutoRefreshService>();
+            services.AddHostedService<AutoRefreshService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
