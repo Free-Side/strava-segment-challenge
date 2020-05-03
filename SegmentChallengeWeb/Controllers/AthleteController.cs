@@ -49,7 +49,8 @@ namespace SegmentChallengeWeb.Controllers {
                     FirstName = athlete.FirstName,
                     LastName = athlete.LastName,
                     BirthDate = athlete.BirthDate,
-                    Gender = athlete.Gender
+                    Gender = athlete.Gender,
+                    Email = athlete.Email
                 });
             }
         }
@@ -79,6 +80,7 @@ namespace SegmentChallengeWeb.Controllers {
             } else {
                 athlete.BirthDate = profile.BirthDate;
                 athlete.Gender = profile.Gender;
+                athlete.Email = profile.Email;
 
                 await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -95,7 +97,8 @@ namespace SegmentChallengeWeb.Controllers {
                     FirstName = athlete.FirstName,
                     LastName = athlete.LastName,
                     BirthDate = athlete.BirthDate,
-                    Gender = athlete.Gender
+                    Gender = athlete.Gender,
+                    Email = athlete.Email
                 });
             }
         }
@@ -107,5 +110,6 @@ namespace SegmentChallengeWeb.Controllers {
         public String LastName { get; set; }
         public Char? Gender { get; set; }
         public DateTime? BirthDate { get; set; }
+        public String Email { get; set; }
     }
 }

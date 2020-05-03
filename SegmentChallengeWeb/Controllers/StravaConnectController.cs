@@ -243,7 +243,8 @@ namespace SegmentChallengeWeb.Controllers {
             claimsIdentity.AddClaim(new Claim("user_data", JsonConvert.SerializeObject(new {
                 profile_picture = athlete.ProfilePicture,
                 birth_date = athlete.BirthDate?.ToString("yyyy-MM-dd"),
-                gender = athlete.Gender
+                gender = athlete.Gender,
+                email = athlete.Email
             })));
 
             return claimsIdentity;

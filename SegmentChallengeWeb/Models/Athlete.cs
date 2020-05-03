@@ -11,6 +11,7 @@ namespace SegmentChallengeWeb.Models {
         public String LastName { get; set; }
         public Char? Gender { get; set; }
         public DateTime? BirthDate { get; set; }
+        public String Email { get; set; }
         public String ProfilePicture { get; set; }
         public String AccessToken { get; set; }
         public String RefreshToken { get; set; }

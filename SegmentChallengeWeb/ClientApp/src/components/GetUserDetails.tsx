@@ -7,14 +7,15 @@ import {ChangeEvent} from "react";
 
 type GetUserDetailsProps =
     { login?: LoginStore.LoginState } &
-    { setUserProfile: (profile: { birthDate: Date, gender: string }) => void };
+    { setUserProfile: (profile: { birthDate: Date, gender: string, email?: string }) => void };
 
 type GetUserDetailsState = {
     year?: number,
     // Index by 1 month. Fuck javascript.
     month?: number,
     day?: number,
-    gender?: string
+    gender?: string,
+    email?: string
 };
 
 const months = [
@@ -66,8 +67,15 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
             year: birthDateUtc?.getUTCFullYear(),
             month: birthDateUtc ? birthDateUtc.getUTCMonth() + 1 : undefined,
             day: birthDateUtc?.getUTCDate(),
-            gender: props.login?.loggedInUser?.user_data?.gender
+            gender: props.login?.loggedInUser?.user_data?.gender,
+            email: props.login?.loggedInUser?.user_data?.email || ''
         }
+
+        this.handleYearChanged = this.handleYearChanged.bind(this);
+        this.handleMonthChanged = this.handleMonthChanged.bind(this);
+        this.handleDayChanged = this.handleDayChanged.bind(this);
+        this.handleGenderChanged = this.handleGenderChanged.bind(this);
+        this.handleEmailChanged = this.handleEmailChanged.bind(this);
     }
 
     public render() {
@@ -79,20 +87,20 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
                     <p>In order to participate in challenges we need your birth date and gender.</p>
                     <div className="user-detail-row">
                         <label>Month:
-                            <select value={this.state.month} onChange={(e) => this.handleMonthChanged(e)}>
+                            <select value={this.state.month} onChange={this.handleMonthChanged}>
                                 <option value={undefined}></option>
                                 {months.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
                             </select>
                         </label>
                         <label>Day:
-                            <select value={this.state.day} onChange={(e) => this.handleDayChanged(e)}>
+                            <select value={this.state.day} onChange={this.handleDayChanged}>
                                 <option value={undefined}></option>
                                 {[...Array(getDaysPerMonth(this.state.year, this.state.month))]
                                     .map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
                             </select>
                         </label>
                         <label>Year:
-                            <select value={this.state.year} onChange={(e) => this.handleYearChanged(e)}>
+                            <select value={this.state.year} onChange={this.handleYearChanged}>
                                 <option value={undefined}></option>
                                 {yearArray.map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
@@ -100,17 +108,22 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
                     </div>
                     <div className="user-detail-row">
                         <label>Gender:
-                            <select value={this.state.gender} onChange={(e) => this.handleGenderChanged(e)}>
+                            <select value={this.state.gender} onChange={this.handleGenderChanged}>
                                 <option value={undefined}></option>
                                 <option value="M">Male</option>
                                 <option value="F">Female</option>
                             </select>
                         </label>
                     </div>
+                    <div className="user-detail-row">
+                        <label>Email <span className="material-icons" title="We will only use your email address to send you a confirmation of your prize at the end of the challenge.">help_outline</span>:
+                            <input type="email" value={this.state.email} onChange={this.handleEmailChanged} />
+                        </label>
+                    </div>
                     <div id="save_cancel_user_details" className="flow-row">
                         <LogoutButton/>
                         <button id="save_user_details"
-                                disabled={!(this.state.year && this.state.month && this.state.day && this.state.gender)}
+                                disabled={!(this.state.year && this.state.month && this.state.day && this.state.gender && this.state.email)}
                                 onClick={() => this.saveProfile()}>Save
                         </button>
                     </div>
@@ -135,11 +148,16 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
         this.setState({gender: event.target.value});
     }
 
+    private handleEmailChanged(event: ChangeEvent<HTMLInputElement>) {
+        this.setState({email: event.target.value});
+    }
+
     private saveProfile() {
         if (this.state.year && this.state.month && this.state.day && this.state.gender) {
             this.props.setUserProfile({
                 birthDate: new Date(this.state.year, this.state.month - 1, this.state.day),
-                gender: this.state.gender
+                gender: this.state.gender,
+                email: this.state.email
             });
         }
     }

@@ -36,6 +36,10 @@
         <Content Include="ClientApp\tsconfig.json" />
         <None Remove="$(SpaRoot)**" />
         <None Include="$(SpaRoot)**" Exclude="$(SpaRoot)node_modules\**" />
+        <None Remove="ClientApp\build\**" />
+        <Content Remove="ClientApp\build\**" />
+        <None Remove="published\**" />
+        <Content Remove="published\**" />
     </ItemGroup>
 
     <ItemGroup>
@@ -43,6 +47,31 @@
       <PackageReference Include="Microsoft.AspNetCore.SpaServices.Extensions" Version="3.1.2" />
       <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="3.1.1" />
       <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="5.6.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="ClientApp\build\**" />
+      <Compile Remove="published\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="ClientApp\build\**" />
+      <EmbeddedResource Remove="published\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="ClientApp\build\asset-manifest.json" />
+      <_ContentIncludedByDefault Remove="ClientApp\build\manifest.json" />
+      <_ContentIncludedByDefault Remove="published\web.config" />
+      <_ContentIncludedByDefault Remove="published\appsettings.Development.json" />
+      <_ContentIncludedByDefault Remove="published\appsettings.json" />
+      <_ContentIncludedByDefault Remove="published\appsettings.Production.json" />
+      <_ContentIncludedByDefault Remove="published\ClientApp\build\asset-manifest.json" />
+      <_ContentIncludedByDefault Remove="published\ClientApp\build\manifest.json" />
+      <_ContentIncludedByDefault Remove="published\nswag.json" />
+      <_ContentIncludedByDefault Remove="published\SegmentChallengeWeb.deps.json" />
+      <_ContentIncludedByDefault Remove="published\SegmentChallengeWeb.runtimeconfig.json" />
+      <_ContentIncludedByDefault Remove="published\swagger.json" />
     </ItemGroup>
 
     <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">

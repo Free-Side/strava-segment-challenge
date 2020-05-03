@@ -31,7 +31,8 @@ const Layout = (props: { children?: React.ReactNode, config: ConfigurationState,
             {props.children}
         </section>
         {props.config.siteFooter && <footer>{props.config.siteFooter}</footer>}
-        {props.login?.loggedInUser && !(props.login.loggedInUser.user_data.birth_date && props.login.loggedInUser) &&
+        {/* If the user is logged in, but has not yet set their birth date and email, display the user profile dialog. */}
+        {props.login?.loggedInUser && !(props.login.loggedInUser.user_data.birth_date && props.login.loggedInUser.user_data.email) &&
         <GetUserDetails />}
     </React.Fragment>
 );

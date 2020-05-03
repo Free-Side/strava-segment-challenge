@@ -233,7 +233,7 @@ footer {
     margin-right: 16px;
   }
 
-  select {
+  select,input {
     margin-left: 8px;
     font-size: inherit;
   }
@@ -265,4 +265,8 @@ footer {
   &:hover {
     background-color: #418241;
   }
+}
+
+span.material-icons {
+  vertical-align: text-bottom;
 }

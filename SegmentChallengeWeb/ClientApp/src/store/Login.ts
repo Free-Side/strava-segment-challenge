@@ -6,7 +6,7 @@ import * as RestHelper from '../RestHelper';
 export interface LoginInfo {
     sub: string,
     name: string,
-    user_data: { profile_picture?: string, birth_date?: string, gender?: string },
+    user_data: { profile_picture?: string, birth_date?: string, gender?: string, email?: string },
     nbf: number,
     exp: number,
     iat: number,
@@ -40,7 +40,7 @@ function isErrorSettingProfileAction(action: Action): action is ErrorSettingProf
 type KnownAction = LoggedInAction | ErrorSettingProfileAction
 
 export const actionCreators = {
-    setUserProfile: (profile: { birthDate: Date, gender: string }): AppThunkAction<KnownAction> => (dispatch, getState) => {
+    setUserProfile: (profile: { birthDate: Date, gender: string, email?: string }): AppThunkAction<KnownAction> => (dispatch, getState) => {
         fetch(
             'api/athletes/self',
             {

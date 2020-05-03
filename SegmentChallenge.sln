@@ -11,6 +11,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sql", "sql", "{F05D3915-F606-448F-A78E-DC25E948DE3E}"
 ProjectSection(SolutionItems) = preProject
 	sql\segment_challenge.sql = sql\segment_challenge.sql
+	sql\migration_00001.up.sql = sql\migration_00001.up.sql
+	sql\migration_00002.up.sql = sql\migration_00002.up.sql
 EndProjectSection
 EndProject
 Global
