@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using SegmentChallengeWeb.Persistence;
 
 namespace SegmentChallengeWeb.Models {
@@ -11,5 +12,13 @@ namespace SegmentChallengeWeb.Models {
         public Int64 SegmentId { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+
+        [Column("ChallengeType")]
+        public ChallengeType Type { get; set; }
+    }
+
+    public enum ChallengeType {
+        Fastest = 0,
+        MostLaps = 1
     }
 }

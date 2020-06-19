@@ -13,6 +13,7 @@ ProjectSection(SolutionItems) = preProject
 	sql\segment_challenge.sql = sql\segment_challenge.sql
 	sql\migration_00001.up.sql = sql\migration_00001.up.sql
 	sql\migration_00002.up.sql = sql\migration_00002.up.sql
+	sql\migration_00003.up.sql = sql\migration_00003.up.sql
 EndProjectSection
 EndProject
 Global

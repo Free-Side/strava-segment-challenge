@@ -3,6 +3,7 @@ import {connect, Matching} from "react-redux";
 import * as ChallengeDetailsStore from "../store/ChallengeDetails";
 import moment from "moment";
 import {ApplicationState} from "../store";
+import {ChallengeType} from "../store/ChallengeList";
 
 type EffortListProps =
     ChallengeDetailsStore.ChallengeDetailsState;
@@ -34,21 +35,23 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                 {this.props.errorMessage &&
                     <span className="error-message">{this.props.errorMessage}</span>}
                 {this.props.allEfforts ?
-                    this.renderEffortListTable(this.props.allEfforts) :
+                    this.renderEffortListTable(this.props.currentChallenge?.type, this.props.allEfforts) :
                     EffortList.renderLoadingIndicator()}
             </React.Fragment>
         );
     }
 
-    private renderEffortListTable(efforts: ChallengeDetailsStore.Effort[]) {
+    private renderEffortListTable(challengeType: ChallengeType | undefined, efforts: ChallengeDetailsStore.Effort[]) {
         // TODO filter by category
         const showCategory = !(this.props.selectedCategory.maximumAge && this.props.selectedCategory.gender);
+        const showLapCount = challengeType === ChallengeType.MostLaps;
         return (
             <table className='main-table table-striped'>
                 <thead>
                     <tr>
                         <td>Athlete</td>
                         {showCategory && <td>Category</td>}
+                        {showLapCount && <td>Lap Count</td>}
                         <td>Time</td>
                     </tr>
                 </thead>
@@ -57,6 +60,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                     <tr id={`effort_${effort.id}`} key={effort.id}>
                         <td>{effort.athleteName}</td>
                         {showCategory && <td>{this.getCategory(effort.athleteAge, effort.athleteGender)}</td>}
+                        {showLapCount && <td>{effort.lapCount}</td>}
                         <td className={effort.isKOM ? 'kom' : ''}>{toTimeFormat(moment.duration(effort.elapsedTime, 'seconds'))}</td>
                     </tr>
                 )}

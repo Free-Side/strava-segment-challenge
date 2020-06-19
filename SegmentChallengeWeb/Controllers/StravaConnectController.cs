@@ -160,9 +160,12 @@ namespace SegmentChallengeWeb.Controllers {
                     "id_token",
                     CreateAthleteJwt(
                         this.challengeConfiguration.Value,
-                        existingAthlete ?? newAthlete?.Entity
-                    )
+                        existingAthlete ?? newAthlete?.Entity),
+                    new CookieOptions {
+                        Expires = DateTime.UtcNow.AddDays(this.challengeConfiguration.Value.TokenExpiration)
+                    }
                 );
+
 
                 return Redirect("/");
             } else {

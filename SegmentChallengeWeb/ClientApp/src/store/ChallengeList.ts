@@ -9,7 +9,13 @@ export interface Challenge {
     description: string,
     segmentId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    type: ChallengeType,
+}
+
+export enum ChallengeType {
+    Fastest = 0,
+    MostLaps = 1
 }
 
 export interface ChallengeListState {

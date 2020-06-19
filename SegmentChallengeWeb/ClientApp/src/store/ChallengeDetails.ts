@@ -15,6 +15,7 @@ export interface Effort {
     athleteGender: string,
     athleteAge: number,
     activityId: number,
+    lapCount: number,
     elapsedTime: number,
     isKOM: boolean
 }

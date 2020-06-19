@@ -218,24 +218,42 @@ namespace SegmentChallengeWeb.Controllers {
                     .OrderBy(row => row.Athlete.Id)
                     .ToListAsync(cancellationToken: cancellationToken);
 
-            var results = new List<(Effort Effort, Athlete Athlete)>();
+            var results = new List<(Effort Effort, Athlete Athlete, Int32 LapCount)>();
 
-            Athlete currentAthlete = null;
-            Effort bestEffort = null;
+            if (challenge.Type == ChallengeType.MostLaps) {
+                foreach (var effortGroup in efforts.GroupBy(e => e.Athlete.Id)) {
+                    var (effort, athlete, lapCount) =
+                        effortGroup.Aggregate(
+                            (effort: (Effort)null, athlete: (Athlete)null, lapCount: 0),
+                            (total, nextEffort) => {
+                                if (total.effort == null) {
+                                    return (nextEffort.Effort, nextEffort.Athlete, 1);
+                                } else {
+                                    return (total.effort.WithElapsedTime(total.effort.ElapsedTime + nextEffort.Effort.ElapsedTime),
+                                        total.athlete,
+                                        total.lapCount + 1);
+                                }
+                            });
+                    results.Add((effort, effortGroup.First().Athlete, lapCount));
+                }
+            } else {
+                Athlete currentAthlete = null;
+                Effort bestEffort = null;
 
-            foreach (var effort in efforts.Append(null)) {
-                if (effort == null || effort.Athlete.Id != currentAthlete?.Id) {
-                    if (bestEffort != null) {
-                        results.Add((bestEffort, currentAthlete));
-                    }
+                foreach (var effort in efforts.Append(null)) {
+                    if (effort == null || effort.Athlete.Id != currentAthlete?.Id) {
+                        if (bestEffort != null) {
+                            results.Add((bestEffort, currentAthlete, 1));
+                        }
 
-                    if (effort != null) {
-                        currentAthlete = effort.Athlete;
+                        if (effort != null) {
+                            currentAthlete = effort.Athlete;
+                            bestEffort = effort.Effort;
+                        }
+                    } else if (bestEffort == null ||
+                        effort.Effort.ElapsedTime < bestEffort.ElapsedTime) {
                         bestEffort = effort.Effort;
                     }
-                } else if (bestEffort == null ||
-                    effort.Effort.ElapsedTime < bestEffort.ElapsedTime) {
-                    bestEffort = effort.Effort;
                 }
             }
 
@@ -249,20 +267,22 @@ namespace SegmentChallengeWeb.Controllers {
                 return (athlete.Gender.GetValueOrDefault('M').ToString(), ageGroup.MaximumAge);
             }
 
-            var resultsByCategory = new List<(Effort Effort, Athlete Athlete, Boolean IsKOM)>();
+            var resultsByCategory = new List<(Effort Effort, Athlete Athlete, Int32 LapCount, Boolean IsKOM)>();
 
             (String Gender, Int32 MaxAge) currentCategory = (null, 0);
 
-            foreach (var (effort, athlete) in results.OrderBy(e => GetCategory(e.Athlete)).ThenBy(e => e.Effort.ElapsedTime)) {
+            foreach (var (effort, athlete, lapCount) in results.OrderBy(e => GetCategory(e.Athlete)).ThenByDescending(e => e.LapCount).ThenBy(e => e.Effort.ElapsedTime)) {
                 var category = GetCategory(athlete);
                 if (category != currentCategory) {
-                    resultsByCategory.Add((effort, athlete, true));
+                    resultsByCategory.Add((effort, athlete, lapCount, true));
                     currentCategory = category;
                 } else if (resultsByCategory.Count > 0 &&
+                           resultsByCategory[^1].LapCount == lapCount &&
                            resultsByCategory[^1].Effort.ElapsedTime == effort.ElapsedTime) {
-                    resultsByCategory.Add((effort, athlete, true));
+                    // Tie for first
+                    resultsByCategory.Add((effort, athlete, lapCount, true));
                 } else {
-                    resultsByCategory.Add((effort, athlete, false));
+                    resultsByCategory.Add((effort, athlete, lapCount, false));
                 }
             }
 
@@ -278,6 +298,7 @@ namespace SegmentChallengeWeb.Controllers {
                             athleteGender = e.Athlete.Gender,
                             athleteAge = e.Athlete.BirthDate?.ToRacingAge(challenge.StartDate),
                             activityId = e.Effort.ActivityId,
+                            lapCount = e.LapCount,
                             elapsedTime = e.Effort.ElapsedTime,
                             startDate = e.Effort.StartDate,
                             isKOM = e.IsKOM
@@ -402,10 +423,13 @@ namespace SegmentChallengeWeb.Controllers {
                 return NotFound();
             }
 
-            var update = updatesTable.Add(new Update {
-                AthleteId = identity.UserId,
-                ChallengeId = challenge.Id
-            });
+            var update = await updatesTable.AddAsync(
+                new Update {
+                    AthleteId = identity.UserId,
+                    ChallengeId = challenge.Id
+                },
+                cancellationToken
+            );
 
             await dbContext.SaveChangesAsync(cancellationToken);
 

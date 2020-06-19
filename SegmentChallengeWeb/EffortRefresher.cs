@@ -312,7 +312,7 @@ namespace SegmentChallengeWeb {
                 var response =
                     await this.apiHelper.MakeThrottledApiRequest(
                         () => stravaClient.GetAsync(
-                            $"/api/v3/athlete/activities?after={challenge.StartDate.ToUnixTime()}&before={challenge.EndDate.ToUnixTime()}&page={pageNumber}&per_page=200",
+                            $"/api/v3/athlete/activities?after={challenge.StartDate.AddDays(-1).ToUnixTime()}&before={challenge.EndDate.ToUnixTime()}&page={pageNumber}&per_page=200",
                             cancellationToken),
                         cancellationToken
                     );
@@ -354,6 +354,9 @@ namespace SegmentChallengeWeb {
                                     var relevantEfforts =
                                         activityDetails.SegmentEfforts
                                             .Where(e => e.Segment.Id == challenge.SegmentId)
+                                            .Where(e =>
+                                                e.StartDate >= challenge.StartDate &&
+                                                e.StartDate.AddSeconds(e.ElapsedTime) <= challenge.EndDate)
                                             .ToList();
 
                                     if (relevantEfforts.Count > 0) {
@@ -394,8 +397,7 @@ namespace SegmentChallengeWeb {
                                     );
 
                                     // Give up
-                                    return (activitiesUpdated, activitiesSkipped, effortsUpdated,
-                                        true);
+                                    return (activitiesUpdated, activitiesSkipped, effortsUpdated, error: true);
                                 }
                             }
                         }
