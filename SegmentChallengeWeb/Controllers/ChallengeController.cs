@@ -288,7 +288,8 @@ namespace SegmentChallengeWeb.Controllers {
 
             return new JsonResult(
                 resultsByCategory
-                    .OrderBy(e => e.Effort.ElapsedTime)
+                    .OrderByDescending(e => e.LapCount)
+                    .ThenBy(e => e.Effort.ElapsedTime)
                     .ThenBy(e => e.Effort.StartDate)
                     .Select(e =>
                         new {
