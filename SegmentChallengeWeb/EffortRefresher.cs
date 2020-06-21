@@ -120,10 +120,32 @@ namespace SegmentChallengeWeb {
             } catch (Exception ex) {
                 this.logger.LogError(
                     "Refresh Efforts Failed. Unexpected Exception: {Message}",
-                    1,
+                    new EventId(2),
                     ex,
                     ex.Message
                 );
+
+                try {
+                    await using var connection = this.dbConnectionFactory();
+                    await connection.OpenAsync(cancellationToken);
+
+                    await using var dbContext = new SegmentChallengeDbContext(connection);
+
+                    var updatesTable = dbContext.Set<Update>();
+                    var update = await updatesTable.SingleOrDefaultAsync(u => u.Id == updateId, cancellationToken);
+                    if (update != null) {
+                        update.EndTime = DateTime.UtcNow;
+                        await dbContext.SaveChangesAsync(cancellationToken);
+                    }
+                } catch (Exception ex2) {
+                    this.logger.LogError(
+                        "Unable to mark update {UpdateId} failed. Unexpected Exception: {Message}",
+                        new EventId(2),
+                        ex2,
+                        updateId,
+                        ex2.Message
+                    );
+                }
             }
         }
 
@@ -179,7 +201,6 @@ namespace SegmentChallengeWeb {
             Challenge challenge,
             Update update,
             CancellationToken cancellationToken) {
-
             var registrationsTable = dbContext.Set<ChallengeRegistration>();
             var athletesTable = dbContext.Set<Athlete>();
 
@@ -362,25 +383,36 @@ namespace SegmentChallengeWeb {
                                     if (relevantEfforts.Count > 0) {
                                         // Save Efforts
                                         foreach (var effort in relevantEfforts) {
-                                            effortsTable.Add(new Effort {
-                                                Id = effort.Id,
-                                                AthleteId = athlete.Id,
-                                                ActivityId = activity.Id,
-                                                SegmentId = challenge.SegmentId,
-                                                ElapsedTime = effort.ElapsedTime,
-                                                StartDate = effort.StartDate
-                                            });
+                                            var existingEffort =
+                                                await effortsTable.SingleOrDefaultAsync(e => e.Id == effort.Id, cancellationToken: cancellationToken);
+                                            if (existingEffort != null) {
+                                                existingEffort.StartDate = effort.StartDate;
+                                                existingEffort.ElapsedTime = effort.ElapsedTime;
+                                            } else {
+                                                await effortsTable.AddAsync(
+                                                    new Effort {
+                                                        Id = effort.Id,
+                                                        AthleteId = athlete.Id,
+                                                        ActivityId = activity.Id,
+                                                        SegmentId = challenge.SegmentId,
+                                                        ElapsedTime = effort.ElapsedTime,
+                                                        StartDate = effort.StartDate
+                                                    },
+                                                    cancellationToken
+                                                );
+                                            }
                                         }
                                     }
 
-                                    activityUpdatesTable.Add(
+                                    await activityUpdatesTable.AddAsync(
                                         new ActivityUpdate {
                                             ChallengeId = challenge.Id,
                                             ActivityId = activity.Id,
                                             AthleteId = athlete.Id,
                                             UpdateId = update.Id,
                                             UpdatedAt = DateTime.UtcNow
-                                        }
+                                        },
+                                        cancellationToken
                                     );
 
                                     await dbContext.SaveChangesAsync(cancellationToken);
