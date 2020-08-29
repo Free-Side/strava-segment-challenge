@@ -15,6 +15,8 @@ namespace SegmentChallengeWeb.Models {
 
         [Column("ChallengeType")]
         public ChallengeType Type { get; set; }
+
+        public Boolean UseMovingTime { get; set; }
     }
 
     public enum ChallengeType {

@@ -387,7 +387,7 @@ namespace SegmentChallengeWeb {
                                                 await effortsTable.SingleOrDefaultAsync(e => e.Id == effort.Id, cancellationToken: cancellationToken);
                                             if (existingEffort != null) {
                                                 existingEffort.StartDate = effort.StartDate;
-                                                existingEffort.ElapsedTime = effort.ElapsedTime;
+                                                existingEffort.ElapsedTime = challenge.UseMovingTime ? effort.MovingTime : effort.ElapsedTime;
                                             } else {
                                                 await effortsTable.AddAsync(
                                                     new Effort {
@@ -395,7 +395,7 @@ namespace SegmentChallengeWeb {
                                                         AthleteId = athlete.Id,
                                                         ActivityId = activity.Id,
                                                         SegmentId = challenge.SegmentId,
-                                                        ElapsedTime = effort.ElapsedTime,
+                                                        ElapsedTime = challenge.UseMovingTime ? effort.MovingTime : effort.ElapsedTime,
                                                         StartDate = effort.StartDate
                                                     },
                                                     cancellationToken
@@ -523,6 +523,9 @@ namespace SegmentChallengeWeb {
 
         [JsonProperty("elapsed_time")]
         public Int32 ElapsedTime { get; set; }
+
+        [JsonProperty("moving_time")]
+        public Int32 MovingTime { get; set; }
 
         [JsonProperty("segment")]
         public StravaSegment Segment { get; set; }

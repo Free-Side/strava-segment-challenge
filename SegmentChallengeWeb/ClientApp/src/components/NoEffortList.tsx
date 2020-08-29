@@ -66,7 +66,7 @@ class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEff
                     break;
             }
 
-            const ageGroup = this.props.ageGroups.filter(a => a.maximumAge > athleteAge)[0];
+            const ageGroup = this.props.ageGroups.filter(a => a.maximumAge >= athleteAge)[0];
             if (ageGroup) {
                 return `${gender}, ${ageGroup.description}`;
             } else {

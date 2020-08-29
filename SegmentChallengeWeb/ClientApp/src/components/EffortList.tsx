@@ -83,7 +83,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                     break;
             }
 
-            const ageGroup = this.props.ageGroups.filter(a => a.maximumAge > athleteAge)[0];
+            const ageGroup = this.props.ageGroups.filter(a => a.maximumAge >= athleteAge)[0];
             if (ageGroup) {
                 return `${gender}, ${ageGroup.description}`;
             } else {
