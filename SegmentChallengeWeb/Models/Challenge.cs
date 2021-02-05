@@ -17,6 +17,8 @@ namespace SegmentChallengeWeb.Models {
         public ChallengeType Type { get; set; }
 
         public Boolean UseMovingTime { get; set; }
+
+        public String GpxData { get; set; }
     }
 
     public enum ChallengeType {

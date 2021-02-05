@@ -2,9 +2,7 @@ version: '3'
 
 services:
   segment-challenge-web:
-    build:
-      context: ./
-      dockerfile: Dockerfile
+    image: segment-challenge:latest
     container_name: segment-challenge-web
     restart: always
     environment:
@@ -15,6 +13,7 @@ services:
       - MYSQL__PORT=3306
       - MYSQL__USER=root
       - MYSQL__PASSWORD=${MYSQL__PASSWORD-segmentchallenge}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT-Production}
     ports:
       - "80:80"
     networks:

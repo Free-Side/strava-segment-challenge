@@ -191,8 +191,9 @@ namespace SegmentChallengeWeb.Controllers {
         public static String CreateAthleteJwt(
             SegmentChallengeConfiguration configuration,
             Athlete athlete) {
+
             var tokenHandler = new JwtSecurityTokenHandler();
-            var claims = CreateAthleteClaims(athlete);
+            var claims = CreateAthleteClaims(configuration, athlete);
 
             // Create JWToken
             var token = tokenHandler.CreateJwtSecurityToken(
@@ -238,7 +239,10 @@ namespace SegmentChallengeWeb.Controllers {
             );
         }
 
-        public static ClaimsIdentity CreateAthleteClaims(Athlete athlete) {
+        public static ClaimsIdentity CreateAthleteClaims(
+            SegmentChallengeConfiguration configuration,
+            Athlete athlete) {
+
             var claimsIdentity = new ClaimsIdentity();
             claimsIdentity.AddClaim(new Claim("sub", athlete.Id.ToString()));
             claimsIdentity.AddClaim(new Claim("name", athlete.GetDisplayName()));
@@ -247,7 +251,8 @@ namespace SegmentChallengeWeb.Controllers {
                 profile_picture = athlete.ProfilePicture,
                 birth_date = athlete.BirthDate?.ToString("yyyy-MM-dd"),
                 gender = athlete.Gender,
-                email = athlete.Email
+                email = athlete.Email,
+                is_admin = configuration.Administrators.Contains(athlete.Id)
             })));
 
             return claimsIdentity;

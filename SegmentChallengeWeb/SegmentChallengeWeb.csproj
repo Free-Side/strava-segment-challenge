@@ -24,6 +24,8 @@
         <TypeScriptCompile Include="ClientApp\src\components\LogoutButton.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\NoEffortList.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\SidePanel.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\components\UploadChallengeGpx.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\components\UploadEffortGpx.tsx" />
         <TypeScriptCompile Include="ClientApp\src\RestHelper.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\ChallengeDetails.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\ChallengeList.ts" />
@@ -40,6 +42,8 @@
         <Content Remove="ClientApp\build\**" />
         <None Remove="published\**" />
         <Content Remove="published\**" />
+        <TypeScriptCompile Include="ClientApp\src\store\UploadChallengeGpx.ts" />
+        <TypeScriptCompile Include="ClientApp\src\store\UploadEffortGpx.ts" />
     </ItemGroup>
 
     <ItemGroup>

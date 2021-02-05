@@ -6,7 +6,7 @@ import * as RestHelper from '../RestHelper';
 export interface LoginInfo {
     sub: string,
     name: string,
-    user_data: { profile_picture?: string, birth_date?: string, gender?: string, email?: string },
+    user_data: { profile_picture?: string, birth_date?: string, gender?: string, email?: string, is_admin?: boolean },
     nbf: number,
     exp: number,
     iat: number,

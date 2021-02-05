@@ -2,9 +2,11 @@ import * as React from 'react';
 import {connect, Matching} from "react-redux";
 import * as ChallengeDetailsStore from "../store/ChallengeDetails";
 import {ApplicationState} from "../store";
+import {LoginState} from "../store/Login";
 
 type NoEffortListProps =
-    ChallengeDetailsStore.ChallengeDetailsState;
+    ChallengeDetailsStore.ChallengeDetailsState &
+    { login?: LoginState };
 
 class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEffortListProps>> {
     public render() {
@@ -37,7 +39,7 @@ class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEff
                         <tbody>
                         {athletesWithNoEfforts.map((athlete: ChallengeDetailsStore.Athlete) =>
                             <tr key={athlete.id}>
-                                <td>{athlete.displayName}</td>
+                                <td>{athlete.displayName}{this.props.login?.loggedInUser?.user_data.is_admin && (` (${athlete.id})`)}</td>
                                 {showCategory && <td>{this.getCategory(athlete.age, athlete.gender)}</td>}
                             </tr>
                         )}
@@ -85,5 +87,5 @@ class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEff
 }
 
 export default connect(
-    (state: ApplicationState) => state.challengeDetails
+    (state: ApplicationState) => ({...state.challengeDetails, login: state.login})
 )(NoEffortList);

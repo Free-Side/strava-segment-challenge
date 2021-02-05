@@ -9,10 +9,12 @@ import * as ChallengeDetailStore from "../store/ChallengeDetails"
 import * as ChallengeListStore from "../store/ChallengeList"
 import JoinButton from "./JoinButton";
 import EffortList from "./EffortList";
+import UploadChallengeGpx from "./UploadChallengeGpx";
 import CategorySelector from "./CategorySelector";
 import {LoginState} from "../store/Login";
 import {Category} from "../store/ChallengeDetails";
 import NoEffortList from "./NoEffortList";
+import UploadEffortGpx from "./UploadEffortGpx";
 
 type ChallengeDetailsProps =
     ChallengeDetailStore.ChallengeDetailsState &
@@ -65,7 +67,7 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
             <div>
                 <div id="challenge_title">
                     <h2><a id="strava_segment_link" href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`} target="_blank" title="View Segment on Strava">{this.props.currentChallenge.displayName}</a></h2>
-                    {(this.props.isAthleteRegistered === false) && <JoinButton/>}
+                    {(this.props.isAthleteRegistered === false) && <JoinButton />}
                     {this.state.bestEffort ?
                         <Link to={({pathname: this.props.location.pathname, hash: `effort_${this.state.bestEffort}`})}
                               className="effort-link">
@@ -81,8 +83,10 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                     {/*</div>*/}
                 </div>
                 <div className="row">
-                    <NoEffortList />
+                    <NoEffortList selectedCategory={this.props.selectedCategory} />
                 </div>
+                {this.props.login?.loggedInUser?.user_data.is_admin && <UploadChallengeGpx selectedCategory={this.props.selectedCategory} />}
+                <UploadEffortGpx selectedCategory={this.props.selectedCategory} />
             </div>
         );
     }

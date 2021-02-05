@@ -1,5 +1,6 @@
 using System;
 using System.Data.Common;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -12,13 +13,16 @@ namespace SegmentChallengeWeb.Controllers {
     [ApiController]
     [Route("api/athletes")]
     public class AthleteController : ControllerBase {
+        private readonly IOptions<SegmentChallengeConfiguration> siteConfiguration;
         private readonly IOptions<SegmentChallengeConfiguration> challengeConfiguration;
         private readonly Func<DbConnection> dbConnectionFactory;
 
         public AthleteController(
+            IOptions<SegmentChallengeConfiguration> siteConfiguration,
             IOptions<SegmentChallengeConfiguration> challengeConfiguration,
             Func<DbConnection> dbConnectionFactory) {
 
+            this.siteConfiguration = siteConfiguration;
             this.challengeConfiguration = challengeConfiguration;
             this.dbConnectionFactory = dbConnectionFactory;
         }
@@ -50,7 +54,9 @@ namespace SegmentChallengeWeb.Controllers {
                     LastName = athlete.LastName,
                     BirthDate = athlete.BirthDate,
                     Gender = athlete.Gender,
-                    Email = athlete.Email
+                    Email = athlete.Email,
+                    IsAdmin = this.siteConfiguration.Value.Administrators != null &&
+                        this.siteConfiguration.Value.Administrators.Contains(identity.UserId)
                 });
             }
         }
@@ -111,5 +117,6 @@ namespace SegmentChallengeWeb.Controllers {
         public Char? Gender { get; set; }
         public DateTime? BirthDate { get; set; }
         public String Email { get; set; }
+        public Boolean IsAdmin { get; set; }
     }
 }

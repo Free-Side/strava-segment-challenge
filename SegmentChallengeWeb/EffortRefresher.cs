@@ -93,6 +93,11 @@ namespace SegmentChallengeWeb {
                     return;
                 }
 
+                if (athlete.Id < 0) {
+                    // This athlete is not a strava user. Manual upload required.
+                    return;
+                }
+
                 var update =
                     await updatesTable.FindAsync(new Object[] { updateId }, cancellationToken);
                 update.StartTime = DateTime.UtcNow;
