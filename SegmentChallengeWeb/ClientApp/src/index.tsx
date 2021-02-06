@@ -19,9 +19,11 @@ let loggedInUser = RestHelper.getLoggedInUser();
 const initialState = {
     login: {loggedInUser},
     config: {
+        // Todo: make it so that this can be configured at runtime instead of during build
         siteTitle: process.env.REACT_APP_SITE_TITLE || 'Strava Segment Challenge',
         siteLogo: process.env.REACT_APP_SITE_LOGO,
-        siteFooter: process.env.REACT_APP_SITE_FOOTER
+        siteFooter: process.env.REACT_APP_SITE_FOOTER,
+        apiBaseUrl: process.env.REACT_APP_API_BASE_URL || ''
     }
 };
 const store = configureStore(history, initialState);

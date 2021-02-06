@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -16,7 +17,8 @@ namespace SegmentChallengeWeb {
                             var environmentName =
                                 hostContext.HostingEnvironment.EnvironmentName;
                             config
-                                .AddJsonFile($"appsettings.{environmentName}.json", optional: false)
+                                .AddJsonFile("appsettings.json", optional: true)
+                                .AddJsonFile($"{Environment.GetEnvironmentVariable("CONFIG_PATH")  ?? "config"}/appsettings.{environmentName}.json", optional: false)
                                 .AddEnvironmentVariables()
                                 .AddCommandLine(args);
                         })

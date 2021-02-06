@@ -41,8 +41,9 @@ type KnownAction = LoggedInAction | ErrorSettingProfileAction
 
 export const actionCreators = {
     setUserProfile: (profile: { birthDate: Date, gender: string, email?: string }): AppThunkAction<KnownAction> => (dispatch, getState) => {
+        let appState = getState();
         fetch(
-            'api/athletes/self',
+            `${appState.config.apiBaseUrl}api/athletes/self`,
             {
                 method: 'POST',
                 credentials: 'same-origin',

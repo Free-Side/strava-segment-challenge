@@ -79,7 +79,7 @@ export const actionCreators = {
 
             console.log(`upload gpx for: ${appState.uploadEffortGpx.athleteId}`)
             fetch(
-                `api/challenges/${appState.challengeDetails.selectedChallengeName}/upload_activity?athlete=${appState.uploadEffortGpx.athleteId}`,
+                `${appState.config.apiBaseUrl}api/challenges/${appState.challengeDetails.selectedChallengeName}/upload_activity?athlete=${appState.uploadEffortGpx.athleteId}`,
                 {method: 'POST', credentials: 'same-origin', body: formData})
                 .then(async response => {
                     if (response.ok) {

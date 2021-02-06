@@ -45,7 +45,7 @@ export const actionCreators = {
         const appState = getState();
         // If there is no request pending, and we have not previously fetched challenges, fetch the challenge list
         if (appState && (!appState.challengeList || (!appState.challengeList.requestPending && !appState.challengeList.challenges))) {
-            fetch('api/challenges')
+            fetch(`${appState.config.apiBaseUrl}api/challenges`)
                 .then(async response => {
                     if (response.ok) {
                         const data = await response.json();

@@ -3,7 +3,8 @@ import {Action, AnyAction, Reducer} from 'redux';
 export interface ConfigurationState {
   siteTitle: string,
   siteLogo?: string,
-  siteFooter?: string
+  siteFooter?: string,
+  apiBaseUrl: string
 }
 
 export interface SetConfigurationAction {
@@ -15,7 +16,7 @@ function isSetConfigurationAction(action: Action): action is SetConfigurationAct
   return action.type === 'SET_CONFIGURATION';
 }
 
-const initialState = { siteTitle: 'Strava Segment Challenge' } as ConfigurationState;
+const initialState = { siteTitle: 'Strava Segment Challenge', apiBaseUrl: '' } as ConfigurationState;
 
 export const reducer: Reducer<ConfigurationState> = (state: ConfigurationState | undefined, action: AnyAction) => {
   state = state || initialState;

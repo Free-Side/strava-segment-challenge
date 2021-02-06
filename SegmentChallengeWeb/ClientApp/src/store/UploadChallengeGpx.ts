@@ -64,7 +64,7 @@ export const actionCreators = {
             formData.append('gpxFile', appState.uploadChallengeGpx.selectedFile);
 
             fetch(
-                `api/challenges/${appState.challengeDetails.selectedChallengeName}/set_gpx`,
+                `${appState.config.apiBaseUrl}api/challenges/${appState.challengeDetails.selectedChallengeName}/set_gpx`,
                 {method: 'POST', credentials: 'same-origin', body: formData})
                 .then(async response => {
                     if (response.ok) {

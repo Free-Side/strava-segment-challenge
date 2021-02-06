@@ -44,6 +44,16 @@
         <Content Remove="published\**" />
         <TypeScriptCompile Include="ClientApp\src\store\UploadChallengeGpx.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\UploadEffortGpx.ts" />
+        <Content Update="config\appsettings.Development.json">
+          <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+          <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+        <Content Update="config\appsettings.Production.json">
+          <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+          <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>

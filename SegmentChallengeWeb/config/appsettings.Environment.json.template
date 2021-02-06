@@ -2,6 +2,7 @@
   "DevelopmentMode": false,
   "SegmentChallenge": {
     "BaseUrl": "<YOUR_SITE_URL>",
+    "CallbackUrlPrefix": "",
     "TokenExpiration": 10,
     "SecretKey": "<RANDOMLY_GENERATED_STRING_USED_TO_SIGN_JWTS>",
     "SupportContact": "<YOUR_SUPPORT_EMAIL>",

@@ -220,7 +220,7 @@ namespace SegmentChallengeWeb.Controllers {
                 Query = ToQueryString(new Dictionary<String, String> {
                     { "client_id", this.stravaConfiguration.Value.ClientId }, {
                         "redirect_uri",
-                        $"{this.challengeConfiguration.Value.BaseUrl}/api/connect/authorize"
+                        $"{this.challengeConfiguration.Value.BaseUrl}{this.challengeConfiguration.Value.CallbackUrlPrefix}/api/connect/authorize"
                     },
                     { "response_type", "code" },
                     { "approval_prompt", "auto" },

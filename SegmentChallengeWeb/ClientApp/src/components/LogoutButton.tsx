@@ -1,8 +1,11 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
+import { ApplicationState } from "../store";
+import { ConfigurationState } from "../store/Configuration";
 
-const LogoutButton = () => (
-    <a href="/api/connect/logout" className="strava-logout">Logout</a>
+const LogoutButton = (props: { config: ConfigurationState }) => (
+    <a href={`${props.config.apiBaseUrl}api/connect/logout`} className="strava-logout">Logout</a>
 );
 
-export default connect()(LogoutButton);
+export default connect((state: ApplicationState, props) =>
+    ({ ...props, config: state.config }))(LogoutButton);

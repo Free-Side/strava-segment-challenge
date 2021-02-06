@@ -2,20 +2,19 @@ version: '3'
 
 services:
   segment-challenge-web:
-    image: segment-challenge:latest
+    image: segment-challenge:${TAG-latest}
     container_name: segment-challenge-web
     restart: always
     environment:
-      - REACT_APP_SITE_TITLE=${REACT_APP_SITE_TITLE-Segment Challenge}
-      - REACT_APP_SITE_LOGO=${REACT_APP_SITE_LOGO}
-      - REACT_APP_SITE_FOOTER=${REACT_APP_SITE_FOOTER}
       - MYSQL__HOST=segment-challenge-sql
       - MYSQL__PORT=3306
       - MYSQL__USER=root
       - MYSQL__PASSWORD=${MYSQL__PASSWORD-segmentchallenge}
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT-Production}
+    volumes:
+      - "${CONFIG_PATH-./SegmentChallengeWeb/config}:/app/config"
     ports:
-      - "80:80"
+      - "${HTTP_EXPOSE_PORT-80}:80"
     networks:
       - services
     depends_on:
@@ -30,7 +29,7 @@ services:
     volumes:
       - segment-challenge-mysql-volume:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "${MYSQL_EXPOSE_PORT-3306}:3306"
     networks:
       - services
 

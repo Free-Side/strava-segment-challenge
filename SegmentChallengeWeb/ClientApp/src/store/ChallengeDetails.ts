@@ -140,7 +140,7 @@ export const actionCreators = {
 
                 if (appState.login?.loggedInUser) {
                     // Fetch Registration Status
-                    fetch(`api/challenges/${selectedChallenge}/registration`, {credentials: 'same-origin'})
+                    fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/registration`, {credentials: 'same-origin'})
                         .then(async response => {
                             if (response.ok) {
                                 const data = await response.json();
@@ -174,7 +174,7 @@ export const actionCreators = {
                 }
 
                 // Fetch Age Groups
-                fetch(`api/challenges/${selectedChallenge}/age_groups`)
+                fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/age_groups`)
                     .then(async response => {
                         if (response.ok) {
                             const data = await response.json();
@@ -207,7 +207,7 @@ export const actionCreators = {
                     });
 
                 // Fetch Efforts
-                fetch(`api/challenges/${selectedChallenge}/efforts`)
+                fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/efforts`)
                     .then(async response => {
                         if (response.ok) {
                             const data = await response.json();
@@ -240,7 +240,7 @@ export const actionCreators = {
                     });
 
                 // Fetch Athletes
-                fetch(`api/challenges/${selectedChallenge}/athletes`)
+                fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/athletes`)
                     .then(async response => {
                         if (response.ok) {
                             const data = await response.json();
@@ -284,7 +284,7 @@ export const actionCreators = {
         if (appState) {
             const selectedChallenge = appState.challengeDetails?.selectedChallengeName;
             if (selectedChallenge && appState.login?.loggedInUser) {
-                fetch(`api/challenges/${selectedChallenge}/register`, {method: 'POST', credentials: 'same-origin'})
+                fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/register`, {method: 'POST', credentials: 'same-origin'})
                     .then(async response => {
                         if (response.ok) {
                             const data = await response.json();
@@ -295,7 +295,7 @@ export const actionCreators = {
                             });
 
                             // Immediately initiate a refresh
-                            fetch(`api/challenges/${selectedChallenge}/refresh`, {method: 'POST', credentials: 'same-origin'})
+                            fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/refresh`, {method: 'POST', credentials: 'same-origin'})
                                 .then(response => {
                                     if (response.ok) {
                                         console.log('Refresh started.');
