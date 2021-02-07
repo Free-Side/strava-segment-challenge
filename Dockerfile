@@ -8,7 +8,7 @@ ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1
 # see https://github.com/nodesource/distributions/blob/master/README.md#deb
 RUN apt-get update -yq
 RUN apt-get install curl gnupg -yq
-RUN curl -sL https://deb.nodesource.com/setup_13.x | bash -
+RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
 RUN apt-get install -y nodejs
 
 COPY *.sln .
@@ -17,7 +17,7 @@ RUN dotnet restore
 
 COPY SegmentChallengeWeb/. ./SegmentChallengeWeb/
 WORKDIR /app/SegmentChallengeWeb/ClientApp
-# Make sure node-sass is build for the docker environment
+# Make sure node-sass is built for the docker environment
 RUN npm install node-sass && npm rebuild node-sass
 WORKDIR /app/SegmentChallengeWeb
 ENTRYPOINT ["bash"]

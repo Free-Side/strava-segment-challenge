@@ -15,26 +15,46 @@ const history = createBrowserHistory({ basename: baseUrl });
 // Check user login state
 let loggedInUser = RestHelper.getLoggedInUser();
 
-// Get the application-wide store instance, prepopulating with state from the server where available.
-const initialState = {
-    login: {loggedInUser},
-    config: {
-        // Todo: make it so that this can be configured at runtime instead of during build
-        siteTitle: process.env.REACT_APP_SITE_TITLE || 'Strava Segment Challenge',
-        siteLogo: process.env.REACT_APP_SITE_LOGO,
-        siteFooter: process.env.REACT_APP_SITE_FOOTER,
-        apiBaseUrl: process.env.REACT_APP_API_BASE_URL || ''
-    }
-};
-const store = configureStore(history, initialState);
+fetch('/config/env.json')
+    .then(resp => {
+        if (resp.status === 200) {
+            const contentType = resp.headers.get('Content-Type');
+            if (contentType && (contentType.startsWith('application/json') || contentType.startsWith('text/json'))) {
+                return resp.json();
+            } else {
+                console.warn(`Unexpected content type for /config/env.json: ${contentType}`);
+            }
+        } else {
+            console.warn(`Unexpected status code for /config/env.json: ${resp.status}`);
+        }
 
-ReactDOM.render(
-  <Provider store={store}>
-    <ConnectedRouter history={history}>
-      <App />
-    </ConnectedRouter>
-  </Provider>,
-  document.getElementById('root')
-);
+        return {};
+    })
+    .catch(err => {
+        console.warn('Error fetching config json: ' + (err.stack || err.message));
+        return {};
+    })
+    .then((config: any) => {
+        // Get the application-wide store instance, prepopulating with state from the server where available.
+        const initialState = {
+            login: { loggedInUser },
+            config: {
+                siteTitle: config.siteTitle ?? process.env.REACT_APP_SITE_TITLE ?? 'Strava Segment Challenge',
+                siteLogo: config.siteLogo ?? process.env.REACT_APP_SITE_LOGO,
+                siteFooter: config.siteFooter ?? process.env.REACT_APP_SITE_FOOTER,
+                apiBaseUrl: config.apiBaseUrl ?? process.env.REACT_APP_API_BASE_URL ?? ''
+            }
+        };
+        const store = configureStore(history, initialState);
 
-registerServiceWorker();
+        ReactDOM.render(
+            <Provider store={store}>
+                <ConnectedRouter history={history}>
+                    <App/>
+                </ConnectedRouter>
+            </Provider>,
+            document.getElementById('root')
+        );
+
+        registerServiceWorker();
+    });
