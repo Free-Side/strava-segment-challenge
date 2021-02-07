@@ -1,6 +1,6 @@
-create schema segment_challenge collate utf8mb4_general_ci;
+-- create schema segment_challenge collate utf8mb4_general_ci;
 
-use segment_challenge;
+-- use segment_challenge;
 
 create table ActivityUpdate
 (
@@ -27,15 +27,19 @@ create table Athlete
 (
     Id bigint not null
         primary key,
-    Username text not null,
+    Username text null,
     FirstName text null,
     LastName text null,
     Gender char not null,
     BirthDate date null,
+    Email varchar(256) null,
     ProfilePicture text null,
     AccessToken text null,
     RefreshToken text null,
-    TokenExpiration datetime null
+    TokenExpiration datetime null,
+    PasswordHash varchar(100) null,
+    constraint Athlete_Email_uindex
+        unique (Email)
 );
 
 create index Athlete__BirthDate
@@ -51,6 +55,13 @@ create table Challenge
     SegmentId bigint not null,
     StartDate datetime not null,
     EndDate datetime null,
+    ChallengeType smallint default 0 not null,
+    UseMovingTime bit default b'0' not null,
+    GpxData mediumtext null,
+    InviteCode varchar(50) null,
+    RegistrationLink text null,
+    constraint Challenge_InviteCode_uindex
+        unique (InviteCode),
     constraint Challenge_Name_uindex
         unique (Name)
 );
@@ -85,6 +96,6 @@ create table `Update`
     Progress float default 0 not null,
     StartTime datetime null,
     EndTime datetime null,
-    AthleteId bigint null
+    AthleteId bigint null,
+    ChallengeId int not null
 );
-

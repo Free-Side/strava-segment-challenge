@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Text.Json.Serialization;
 using SegmentChallengeWeb.Persistence;
 
 namespace SegmentChallengeWeb.Models {
@@ -16,6 +17,9 @@ namespace SegmentChallengeWeb.Models {
         public String AccessToken { get; set; }
         public String RefreshToken { get; set; }
         public DateTime TokenExpiration { get; set; }
+
+        [JsonIgnore]
+        public String PasswordHash { get; set; }
 
         public String GetDisplayName() {
             var displayName = new StringBuilder();

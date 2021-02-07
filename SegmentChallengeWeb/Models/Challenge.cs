@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using SegmentChallengeWeb.Persistence;
 
 namespace SegmentChallengeWeb.Models {
@@ -19,6 +20,14 @@ namespace SegmentChallengeWeb.Models {
         public Boolean UseMovingTime { get; set; }
 
         public String GpxData { get; set; }
+
+        // Don't expose publicly
+        [JsonIgnore]
+        public String InviteCode { get; set; }
+
+        public String RegistrationLink { get; set; }
+
+        public Boolean RequiresInviteCode => !String.IsNullOrEmpty(this.InviteCode);
     }
 
     public enum ChallengeType {

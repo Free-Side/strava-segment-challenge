@@ -122,6 +122,8 @@ namespace SegmentChallengeWeb.Controllers {
         [HttpPost("{name}/register")]
         public async Task<IActionResult> Register(
             String name,
+            [FromQuery]
+            String inviteCode,
             CancellationToken cancellationToken) {
 
             if (!(User is JwtCookiePrincipal identity)) {
@@ -143,6 +145,14 @@ namespace SegmentChallengeWeb.Controllers {
 
             if (challenge == null) {
                 return NotFound();
+            }
+
+            if (!String.IsNullOrEmpty(challenge.InviteCode)) {
+                if (!String.Equals(challenge.InviteCode, inviteCode?.Trim(), StringComparison.OrdinalIgnoreCase)) {
+                    return BadRequest(new ProblemDetails {
+                        Detail = "This challenge requires an invite code in order to join. Follow the registration link to receive an invite code."
+                    });
+                }
             }
 
             var registration = await registrationTable.SingleOrDefaultAsync(

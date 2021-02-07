@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using SegmentChallengeWeb.Configuration;
 using SegmentChallengeWeb.Models;
@@ -44,7 +45,7 @@ namespace SegmentChallengeWeb.Controllers {
             var athlete =
                 await athleteTable.FindAsync(new Object[] { identity.UserId }, cancellationToken);
 
-            if (athlete == null ) {
+            if (athlete == null) {
                 // Odd
                 return NotFound();
             } else {
@@ -63,7 +64,7 @@ namespace SegmentChallengeWeb.Controllers {
 
         [HttpPost("self")]
         public async Task<IActionResult> UpdateSelf(
-            [FromBody]AthleteProfile profile,
+            [FromBody] AthleteProfile profile,
             CancellationToken cancellationToken) {
 
             if (!(User is JwtCookiePrincipal identity)) {
@@ -80,7 +81,7 @@ namespace SegmentChallengeWeb.Controllers {
             var athlete =
                 await athleteTable.FindAsync(new Object[] { identity.UserId }, cancellationToken);
 
-            if (athlete == null ) {
+            if (athlete == null) {
                 // Odd
                 return NotFound();
             } else {
@@ -90,23 +91,64 @@ namespace SegmentChallengeWeb.Controllers {
 
                 await dbContext.SaveChangesAsync(cancellationToken);
 
-                Response.Cookies.Append(
-                    "id_token",
-                    StravaConnectController.CreateAthleteJwt(
-                        this.challengeConfiguration.Value,
-                        athlete
-                    )
-                );
+                return ReturnAthleteProfileWithCookie(athlete);
+            }
+        }
 
-                return new JsonResult(new AthleteProfile {
-                    Username = athlete.Username,
-                    FirstName = athlete.FirstName,
-                    LastName = athlete.LastName,
-                    BirthDate = athlete.BirthDate,
-                    Gender = athlete.Gender,
-                    Email = athlete.Email
+        public async Task<IActionResult> SignUp(
+            AthleteSignUp signUp,
+            CancellationToken cancellationToken) {
+
+            if (this.User is JwtCookiePrincipal) {
+                return BadRequest(new ProblemDetails {
+                    Detail = "User is already signed in."
                 });
             }
+
+            await using var connection = this.dbConnectionFactory();
+            await connection.OpenAsync(cancellationToken);
+
+            await using var dbContext = new SegmentChallengeDbContext(connection);
+
+            var athleteTable = dbContext.Set<Athlete>();
+
+            var minId = await athleteTable.MinAsync(a => a.Id, cancellationToken: cancellationToken);
+
+            var athlete = await athleteTable.AddAsync(
+                new Athlete {
+                    Id = minId - 1,
+                    Email = signUp.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(signUp.Password),
+                    FirstName = signUp.FirstName,
+                    LastName = signUp.LastName,
+                    BirthDate = signUp.BirthDate,
+                    Gender = signUp.Gender
+                },
+                cancellationToken
+            );
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return ReturnAthleteProfileWithCookie(athlete.Entity);
+        }
+
+        private IActionResult ReturnAthleteProfileWithCookie(Athlete athlete) {
+            Response.Cookies.Append(
+                "id_token",
+                StravaConnectController.CreateAthleteJwt(
+                    this.challengeConfiguration.Value,
+                    athlete
+                )
+            );
+
+            return new JsonResult(new AthleteProfile {
+                Username = athlete.Username,
+                FirstName = athlete.FirstName,
+                LastName = athlete.LastName,
+                BirthDate = athlete.BirthDate,
+                Gender = athlete.Gender,
+                Email = athlete.Email
+            });
         }
     }
 
@@ -118,5 +160,14 @@ namespace SegmentChallengeWeb.Controllers {
         public DateTime? BirthDate { get; set; }
         public String Email { get; set; }
         public Boolean IsAdmin { get; set; }
+    }
+
+    public class AthleteSignUp {
+        public String Email { get; set; }
+        public String Password { get; set; }
+        public String FirstName { get; set; }
+        public String LastName { get; set; }
+        public Char Gender { get; set; }
+        public DateTime BirthDate { get; set; }
     }
 }
