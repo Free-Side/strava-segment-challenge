@@ -45,6 +45,9 @@ fetch('/config/env.json')
                 apiBaseUrl: config.apiBaseUrl ?? process.env.REACT_APP_API_BASE_URL ?? ''
             }
         };
+
+        document.title = initialState.config.siteTitle;
+
         const store = configureStore(history, initialState);
 
         ReactDOM.render(
