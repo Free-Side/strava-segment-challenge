@@ -1,12 +1,11 @@
-import * as React from 'react';
-import {connect} from "react-redux";
-import {Link} from "react-router-dom";
-import LoginButton from "./LoginButton";
+import * as React from "react";
+import { connect } from "react-redux";
+import { Link } from "react-router-dom";
 import LogoutButton from "./LogoutButton";
 import GetUserDetails from "./GetUserDetails";
-import {ApplicationState} from "../store";
-import {ConfigurationState} from "../store/Configuration";
-import {LoginState} from "../store/Login";
+import { ApplicationState } from "../store";
+import { ConfigurationState } from "../store/Configuration";
+import { LoginState } from "../store/Login";
 
 const Layout = (props: { children?: React.ReactNode, config: ConfigurationState, login?: LoginState }) => (
     <React.Fragment>
@@ -15,7 +14,7 @@ const Layout = (props: { children?: React.ReactNode, config: ConfigurationState,
                 <h1>
                     <Link to={'/'}>
                         {props.config.siteLogo &&
-                        <img id="layout_logo" src={props.config.siteLogo} width="100px" height="100px" alt="logo"/>}
+                        <img id="layout_logo" src={props.config.siteLogo} width="100px" height="100px" alt="logo" />}
                         {props.config.siteTitle}
                     </Link>
                 </h1>
@@ -23,8 +22,11 @@ const Layout = (props: { children?: React.ReactNode, config: ConfigurationState,
             <div id="layout_profile">
                 {(props.login && props.login.loggedInUser) ?
                     <React.Fragment><span
-                        id="layout_greeting">Welcome, {props.login.loggedInUser.name}</span><LogoutButton/></React.Fragment> :
-                    <LoginButton/>}
+                        id="layout_greeting">Welcome, {props.login.loggedInUser.name}</span><LogoutButton /></React.Fragment> :
+                    <React.Fragment>
+                        <Link to="/login" className="link-button login-button">Log in</Link>
+                        <Link to="/signup" className="link-button signup-button">Sign up</Link>
+                    </React.Fragment>}
             </div>
         </header>
         <section id="layout_main">
@@ -39,4 +41,4 @@ const Layout = (props: { children?: React.ReactNode, config: ConfigurationState,
 
 export default connect(
     (state: ApplicationState, props) =>
-        ({...props, config: state.config, login: state.login}))(Layout);
+        ({ ...props, config: state.config, login: state.login }))(Layout);

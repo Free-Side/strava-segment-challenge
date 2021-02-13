@@ -42,6 +42,11 @@ namespace SegmentChallengeWeb.Persistence {
             // We have to manually register our properties because we violate certain
             // EntityFramework conventions.
             foreach (var property in modelType.GetProperties()) {
+                // Ignore read only properties.
+                if (!property.CanWrite) {
+                    continue;
+                }
+
                 var entityProperty = entity.Property(property.Name);
 
                 if (ValueConverters.TryGetValue(UnderlyingType(property.PropertyType), out var converter)) {

@@ -40,8 +40,12 @@ namespace SegmentChallengeWeb {
         }
 
         private void RefreshAllChallenges() {
-            var startRefreshTask = this.RefreshAllChallengesAsync(CancellationToken.None);
-            startRefreshTask.ConfigureAwait(continueOnCapturedContext: false).GetAwaiter().GetResult();
+            try {
+                var startRefreshTask = this.RefreshAllChallengesAsync(CancellationToken.None);
+                startRefreshTask.ConfigureAwait(continueOnCapturedContext: false).GetAwaiter().GetResult();
+            } catch (Exception err) {
+                this.logger.LogError(-1, err, err.Message);
+            }
         }
 
         private async Task RefreshAllChallengesAsync(CancellationToken cancellationToken) {

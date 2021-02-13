@@ -13,22 +13,19 @@ namespace SegmentChallengeWeb.Controllers {
     [ApiController]
     [Route("api/auth")]
     public class LoginController : ControllerBase {
-        private readonly IOptions<SegmentChallengeConfiguration> siteConfiguration;
         private readonly IOptions<SegmentChallengeConfiguration> challengeConfiguration;
         private readonly Func<DbConnection> dbConnectionFactory;
 
         public LoginController(
-            IOptions<SegmentChallengeConfiguration> siteConfiguration,
             IOptions<SegmentChallengeConfiguration> challengeConfiguration,
             Func<DbConnection> dbConnectionFactory) {
 
-            this.siteConfiguration = siteConfiguration;
             this.challengeConfiguration = challengeConfiguration;
             this.dbConnectionFactory = dbConnectionFactory;
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(AthleteLogin login, CancellationToken cancellationToken) {
+        public async Task<IActionResult> LogIn(AthleteLogin login, CancellationToken cancellationToken) {
             await using var connection = this.dbConnectionFactory();
             await connection.OpenAsync(cancellationToken);
 
@@ -38,13 +35,62 @@ namespace SegmentChallengeWeb.Controllers {
 
             var athlete = await athleteTable.SingleOrDefaultAsync(a => a.Email == login.Email, cancellationToken: cancellationToken);
 
-            if (athlete == null || !BCrypt.Net.BCrypt.Verify(login.Password, athlete.PasswordHash)) {
+            if (athlete == null ||
+                String.IsNullOrEmpty(athlete.PasswordHash) ||
+                !BCrypt.Net.BCrypt.Verify(login.Password, athlete.PasswordHash)) {
                 // Make em sweat
                 await Task.Delay(2000, cancellationToken);
                 return Unauthorized();
             } else {
                 return ReturnAthleteProfileWithCookie(athlete);
             }
+        }
+
+        [HttpPost("signup")]
+        public async Task<IActionResult> SignUp(
+            AthleteSignUp signUp,
+            CancellationToken cancellationToken) {
+
+            if (this.User is JwtCookiePrincipal) {
+                return BadRequest(new ProblemDetails {
+                    Detail = "User is already signed in."
+                });
+            }
+
+            await using var connection = this.dbConnectionFactory();
+            await connection.OpenAsync(cancellationToken);
+
+            await using var dbContext = new SegmentChallengeDbContext(connection);
+
+            var athleteTable = dbContext.Set<Athlete>();
+
+            var existingAthlete = await athleteTable.SingleOrDefaultAsync(a => a.Email == signUp.Email, cancellationToken: cancellationToken);
+
+            if (existingAthlete != null) {
+                return BadRequest(new ProblemDetails {
+                    Detail = "The specified email address is already registered."
+                });
+            }
+
+            var minId = await athleteTable.MinAsync(a => a.Id, cancellationToken: cancellationToken);
+
+            var athlete = await athleteTable.AddAsync(
+                new Athlete {
+                    Id = Math.Min(0, minId) - 1,
+                    Email = signUp.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(signUp.Password),
+                    Username = signUp.Username,
+                    FirstName = signUp.FirstName,
+                    LastName = signUp.LastName,
+                    BirthDate = signUp.BirthDate,
+                    Gender = signUp.Gender
+                },
+                cancellationToken
+            );
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return ReturnAthleteProfileWithCookie(athlete.Entity);
         }
 
         private IActionResult ReturnAthleteProfileWithCookie(Athlete athlete) {

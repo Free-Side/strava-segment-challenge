@@ -1,9 +1,9 @@
 import * as React from 'react';
-import {connect} from "react-redux";
+import { connect } from "react-redux";
 import * as LoginStore from "../store/Login";
-import {ApplicationState} from "../store";
+import { ApplicationState } from "../store";
 import LogoutButton from "./LogoutButton";
-import {ChangeEvent} from "react";
+import { ChangeEvent } from "react";
 
 type GetUserDetailsProps =
     { login?: LoginStore.LoginState } &
@@ -15,7 +15,8 @@ type GetUserDetailsState = {
     month?: number,
     day?: number,
     gender?: string,
-    email?: string
+    email?: string,
+    isEmailReadonly: boolean
 };
 
 const months = [
@@ -63,13 +64,15 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
 
         console.log(props.login?.loggedInUser);
 
+        let email = props.login?.loggedInUser?.user_data?.email;
         this.state = {
             year: birthDateUtc?.getUTCFullYear(),
             month: birthDateUtc ? birthDateUtc.getUTCMonth() + 1 : undefined,
             day: birthDateUtc?.getUTCDate(),
             gender: props.login?.loggedInUser?.user_data?.gender,
-            email: props.login?.loggedInUser?.user_data?.email || ''
-        }
+            email: email ?? '',
+            isEmailReadonly: !!email
+        };
 
         this.handleYearChanged = this.handleYearChanged.bind(this);
         this.handleMonthChanged = this.handleMonthChanged.bind(this);
@@ -116,12 +119,16 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
                         </label>
                     </div>
                     <div className="user-detail-row">
-                        <label>Email <span className="material-icons" title="We will only use your email address to send you a confirmation of your prize at the end of the challenge.">help_outline</span>:
-                            <input type="email" value={this.state.email} onChange={this.handleEmailChanged} />
+                        <label>Email <span className="material-icons"
+                                           title="We will only use your email address to send you a confirmation of your prize at the end of the challenge.">help_outline</span>:
+                            <input type="email"
+                                   value={this.state.email}
+                                   onChange={this.handleEmailChanged}
+                                   readOnly={this.state.isEmailReadonly} />
                         </label>
                     </div>
                     <div id="save_cancel_user_details" className="flow-row">
-                        <LogoutButton/>
+                        <LogoutButton />
                         <button id="save_user_details"
                                 disabled={!(this.state.year && this.state.month && this.state.day && this.state.gender && this.state.email)}
                                 onClick={() => this.saveProfile()}>Save
@@ -133,23 +140,25 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
     }
 
     private handleYearChanged(event: ChangeEvent<HTMLSelectElement>) {
-        this.setState({year: Number(event.target.value)});
+        this.setState({ year: Number(event.target.value) });
     }
 
     private handleMonthChanged(event: ChangeEvent<HTMLSelectElement>) {
-        this.setState({month: Number(event.target.value)});
+        this.setState({ month: Number(event.target.value) });
     }
 
     private handleDayChanged(event: ChangeEvent<HTMLSelectElement>) {
-        this.setState({day: Number(event.target.value)});
+        this.setState({ day: Number(event.target.value) });
     }
 
     private handleGenderChanged(event: ChangeEvent<HTMLSelectElement>) {
-        this.setState({gender: event.target.value});
+        this.setState({ gender: event.target.value });
     }
 
     private handleEmailChanged(event: ChangeEvent<HTMLInputElement>) {
-        this.setState({email: event.target.value});
+        if (!this.state.isEmailReadonly) {
+            this.setState({ email: event.target.value });
+        }
     }
 
     private saveProfile() {
@@ -163,4 +172,4 @@ class GetUserDetails extends React.PureComponent<GetUserDetailsProps, GetUserDet
     }
 }
 
-export default connect((state: ApplicationState) => ({login: state.login}), LoginStore.actionCreators)(GetUserDetails);
+export default connect((state: ApplicationState) => ({ login: state.login }), LoginStore.actionCreators)(GetUserDetails);

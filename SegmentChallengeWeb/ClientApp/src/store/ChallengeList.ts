@@ -11,6 +11,10 @@ export interface Challenge {
     startDate: Date,
     endDate: Date,
     type: ChallengeType,
+    useMovingTime: boolean,
+    requiresInviteCode: boolean,
+    registrationLink: string,
+    routeMapImage: string,
 }
 
 export enum ChallengeType {

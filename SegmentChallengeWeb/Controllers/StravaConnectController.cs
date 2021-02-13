@@ -216,7 +216,7 @@ namespace SegmentChallengeWeb.Controllers {
             var uriBuilder = new UriBuilder {
                 Scheme = "https",
                 Host = "www.strava.com",
-                Path = "/oauth/authorize",
+                Path = "/oauth/mobile/authorize",
                 Query = ToQueryString(new Dictionary<String, String> {
                     { "client_id", this.stravaConfiguration.Value.ClientId }, {
                         "redirect_uri",

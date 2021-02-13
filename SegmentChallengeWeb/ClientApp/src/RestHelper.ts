@@ -1,9 +1,7 @@
 import jwt from "jwt-simple";
 
 export function hasContent(response: Response) {
-    const contentLength = response.headers.get('Content-Length');
-
-    return contentLength && Number(contentLength) > 0;
+    return !!response.headers.get('Content-Type');
 }
 
 export function generateErrorMessage(resource: string, status: number, statusText: string, detail: string) {

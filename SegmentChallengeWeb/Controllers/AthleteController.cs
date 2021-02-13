@@ -95,43 +95,6 @@ namespace SegmentChallengeWeb.Controllers {
             }
         }
 
-        public async Task<IActionResult> SignUp(
-            AthleteSignUp signUp,
-            CancellationToken cancellationToken) {
-
-            if (this.User is JwtCookiePrincipal) {
-                return BadRequest(new ProblemDetails {
-                    Detail = "User is already signed in."
-                });
-            }
-
-            await using var connection = this.dbConnectionFactory();
-            await connection.OpenAsync(cancellationToken);
-
-            await using var dbContext = new SegmentChallengeDbContext(connection);
-
-            var athleteTable = dbContext.Set<Athlete>();
-
-            var minId = await athleteTable.MinAsync(a => a.Id, cancellationToken: cancellationToken);
-
-            var athlete = await athleteTable.AddAsync(
-                new Athlete {
-                    Id = minId - 1,
-                    Email = signUp.Email,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(signUp.Password),
-                    FirstName = signUp.FirstName,
-                    LastName = signUp.LastName,
-                    BirthDate = signUp.BirthDate,
-                    Gender = signUp.Gender
-                },
-                cancellationToken
-            );
-
-            await dbContext.SaveChangesAsync(cancellationToken);
-
-            return ReturnAthleteProfileWithCookie(athlete.Entity);
-        }
-
         private IActionResult ReturnAthleteProfileWithCookie(Athlete athlete) {
             Response.Cookies.Append(
                 "id_token",
@@ -165,6 +128,7 @@ namespace SegmentChallengeWeb.Controllers {
     public class AthleteSignUp {
         public String Email { get; set; }
         public String Password { get; set; }
+        public String Username { get; set; }
         public String FirstName { get; set; }
         public String LastName { get; set; }
         public Char Gender { get; set; }

@@ -60,6 +60,7 @@ create table Challenge
     GpxData mediumtext null,
     InviteCode varchar(50) null,
     RegistrationLink text null,
+    RouteMapImage mediumblob null,
     constraint Challenge_InviteCode_uindex
         unique (InviteCode),
     constraint Challenge_Name_uindex
@@ -99,3 +100,4 @@ create table `Update`
     AthleteId bigint null,
     ChallengeId int not null
 );
+

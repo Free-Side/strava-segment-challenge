@@ -12,21 +12,24 @@
     <ItemGroup>
         <!-- Don't publish the SPA source files, but do show them in the project files list -->
         <Content Remove="$(SpaRoot)**" />
-        <Content Include="ClientApp\.env" />
         <Content Include="ClientApp\.eslintrc.json" />
         <TypeScriptCompile Include="ClientApp\src\components\CategorySelector.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\ChallengeDetails.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\ChallengeList.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\EffortList.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\GetUserDetails.tsx" />
-        <TypeScriptCompile Include="ClientApp\src\components\JoinButton.tsx" />
-        <TypeScriptCompile Include="ClientApp\src\components\LoginButton.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\components\NotFound.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\components\SignUpPage.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\components\StravaLoginButton.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\components\LoginPage.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\LogoutButton.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\NoEffortList.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\SidePanel.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\UploadChallengeGpx.tsx" />
         <TypeScriptCompile Include="ClientApp\src\components\UploadEffortGpx.tsx" />
         <TypeScriptCompile Include="ClientApp\src\RestHelper.ts" />
+        <TypeScriptCompile Include="ClientApp\src\shared\EventHelpers.ts" />
+        <TypeScriptCompile Include="ClientApp\src\shared\Modal.tsx" />
         <TypeScriptCompile Include="ClientApp\src\store\ChallengeDetails.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\ChallengeList.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\Configuration.ts" />

@@ -1,20 +1,20 @@
 import * as React from 'react';
-import {connect, Matching} from 'react-redux';
-import {RouteComponentProps} from "react-router";
-import {Link} from "react-router-dom";
-import moment from "moment";
-import {ApplicationState} from "../store";
-import {Challenge} from "../store/ChallengeList";
-import * as ChallengeDetailStore from "../store/ChallengeDetails"
-import * as ChallengeListStore from "../store/ChallengeList"
-import JoinButton from "./JoinButton";
+import { connect, Matching } from 'react-redux';
+import { RouteComponentProps } from "react-router";
+import { Link } from "react-router-dom";
 import EffortList from "./EffortList";
 import UploadChallengeGpx from "./UploadChallengeGpx";
-import CategorySelector from "./CategorySelector";
-import {LoginState} from "../store/Login";
-import {Category} from "../store/ChallengeDetails";
 import NoEffortList from "./NoEffortList";
 import UploadEffortGpx from "./UploadEffortGpx";
+import { ApplicationState } from "../store";
+import { Challenge } from "../store/ChallengeList";
+import * as ChallengeDetailStore from "../store/ChallengeDetails"
+import * as ChallengeListStore from "../store/ChallengeList"
+import { LoginState } from "../store/Login";
+import { Category } from "../store/ChallengeDetails";
+import { Modal } from "../shared/Modal";
+import { onEnterKey } from "../shared/EventHelpers";
+import { ChangeEvent } from "react";
 
 type ChallengeDetailsProps =
     ChallengeDetailStore.ChallengeDetailsState &
@@ -22,11 +22,16 @@ type ChallengeDetailsProps =
     { login?: LoginState } &
     {
         onSelectedChallengeChanged: (selectedChallenge: string) => void,
-        selectedCategoryChanged: (selectedCategory: Category) => ChallengeDetailStore.SelectedCategoryChanged
+        selectedCategoryChanged: (selectedCategory: Category) => ChallengeDetailStore.SelectedCategoryChanged,
+        joinChallenge: (inviteCode?: string) => void,
+        cancelJoin: () => void,
+        inviteCodeChanged: (inviteCode: string) => void,
     } &
     RouteComponentProps<{ challengeName: string }>;
 
-type ChallengeDetailsState = { bestEffort?: number }
+type ChallengeDetailsState = {
+    bestEffort?: number
+}
 
 class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProps, ChallengeDetailsProps>, ChallengeDetailsState> {
     constructor(props: ChallengeDetailsProps) {
@@ -66,27 +71,73 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
         return this.props.currentChallenge && (
             <div>
                 <div id="challenge_title">
-                    <h2><a id="strava_segment_link" href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`} target="_blank" title="View Segment on Strava">{this.props.currentChallenge.displayName}</a></h2>
-                    {(this.props.isAthleteRegistered === false) && <JoinButton />}
+                    <h2><a id="strava_segment_link" href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`} target="_blank"
+                           title="View Segment on Strava">{this.props.currentChallenge.displayName}</a></h2>
+                    {(this.props.isAthleteRegistered === false) &&
+                    <button type="button"
+                            className="join-button"
+                            onClick={() => this.props.joinChallenge(this.props.inviteCode)}>
+                        Join Challenge
+                    </button>}
                     {this.state.bestEffort ?
-                        <Link to={({pathname: this.props.location.pathname, hash: `effort_${this.state.bestEffort}`})}
+                        <Link to={({ pathname: this.props.location.pathname, hash: `effort_${this.state.bestEffort}` })}
                               className="effort-link">
                             Your Effort
                         </Link> :
                         (this.props.isAthleteRegistered === true && <span>You have joined. Check back later for your efforts.</span>)}
                 </div>
-                <h3>{this.props.selectedCategory.description}</h3>
-                <div className="flex-row row">
-                    <EffortList />
-                    {/*<div className="side-panel">*/}
-                    {/*    <CategorySelector />*/}
-                    {/*</div>*/}
-                </div>
-                <div className="row">
-                    <NoEffortList selectedCategory={this.props.selectedCategory} />
+                {this.props.currentChallenge.routeMapImage &&
+                <img src={"data:image/png;base64," + this.props.currentChallenge.routeMapImage} alt="A map of the segment route."
+                     className="route-map-image" />}
+                <div className="main-table-container">
+                    <h3>{this.props.selectedCategory.description}</h3>
+                    <div className="flex-row row">
+                        <EffortList />
+                        {/*<div className="side-panel">*/}
+                        {/*    <CategorySelector />*/}
+                        {/*</div>*/}
+                    </div>
+                    <div className="row">
+                        <NoEffortList selectedCategory={this.props.selectedCategory} />
+                    </div>
                 </div>
                 {this.props.login?.loggedInUser?.user_data.is_admin && <UploadChallengeGpx selectedCategory={this.props.selectedCategory} />}
-                <UploadEffortGpx selectedCategory={this.props.selectedCategory} />
+                {this.props.isAthleteRegistered &&
+                <UploadEffortGpx selectedCategory={this.props.selectedCategory} />}
+
+                <Modal open={this.props.waitingForInviteCode === true} closeModal={() => this.props.cancelJoin()}>
+                    <div className="invite-code-dialog">
+                        <label>Enter Invite Code:
+                            <input type="text"
+                                   autoFocus={true}
+                                   value={this.props.inviteCode}
+                                   onChange={(e: ChangeEvent<HTMLInputElement>) => this.props.inviteCodeChanged(e.target.value)}
+                                   onKeyPress={onEnterKey(() => this.props.joinChallenge(this.props.inviteCode))} />
+                        </label>
+                        <p className="form-field-description">
+                            If you do not yet have an invite code, you may need to <a href={this.props.currentChallenge.registrationLink} target="_blank">register
+                            for the event</a> or contact the challenge organizer.
+                        </p>
+                        {this.props.registrationError &&
+                        <p className="form-field-description error">
+                            {this.props.registrationError}
+                        </p>}
+                        <div className="dialog-buttons">
+                            <button type="button"
+                                    className="cancel-button"
+                                    disabled={this.props.registering}
+                                    onClick={() => this.props.cancelJoin()}>
+                                Cancel
+                            </button>
+                            <button type="button"
+                                    className="join-button"
+                                    disabled={this.props.registering}
+                                    onClick={() => this.props.joinChallenge(this.props.inviteCode)}>
+                                Join Challenge
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
             </div>
         );
     }
@@ -98,7 +149,6 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
     }
 
     private static renderNotFound() {
-
         return (
             <div>
                 <span className="error-message">The Challenge you are looking for was not found.</span>
@@ -112,6 +162,6 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
 }
 
 export default connect(
-    (state: ApplicationState) => ({...state.challengeList, ...state.challengeDetails, login: state.login}),
+    (state: ApplicationState) => ({ ...state.challengeList, ...state.challengeDetails, login: state.login }),
     ChallengeDetailStore.actionCreators
 )(ChallengeDetails);

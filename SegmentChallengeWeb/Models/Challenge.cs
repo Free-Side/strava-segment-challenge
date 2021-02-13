@@ -27,6 +27,9 @@ namespace SegmentChallengeWeb.Models {
 
         public String RegistrationLink { get; set; }
 
+        public Byte[] RouteMapImage { get; set; }
+
+        [NotMapped]
         public Boolean RequiresInviteCode => !String.IsNullOrEmpty(this.InviteCode);
     }
 

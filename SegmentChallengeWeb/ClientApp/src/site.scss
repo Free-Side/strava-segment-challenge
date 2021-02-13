@@ -56,7 +56,7 @@ header {
     }
 
     position: absolute;
-    right: 0;
+    right: 10px;
   }
 
   &::after {
@@ -66,8 +66,25 @@ header {
   }
 }
 
-.join-button {
+.link-button {
+  display: inline-block;
   border-radius: 4px;
+  text-decoration: none;
+  padding: 8px;
+  color: black;
+  border: 2px solid black;
+  margin-left: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background-color: gainsboro;
+  }
+}
+
+.join-button {
+  cursor: pointer;
+  border-radius: 4px;
+  border: none;
   color: white;
   text-decoration: none;
   margin-left: 8px;
@@ -99,13 +116,9 @@ header {
 
 a.strava-logout, a.strava-login {
   font-family: "MaisonNeue", "Segoe UI", "Helvetica Neue", "system-ui", "BlinkMacSystemFont", "Roboto", "Arial", sans-serif;
-  display: inline-block;
-  border-radius: 4px;
   color: white;
-  text-decoration: none;
-  padding: 8px;
-  margin-left: 8px;
   margin-right: 8px;
+  border: none;
 
   &::before {
     display: inline-block;
@@ -132,6 +145,8 @@ a.strava-logout {
 }
 
 a.strava-login {
+  margin-left: 50%;
+  transform: translateX(-50%);
   background-color: #fc5200;
 
   &:hover {
@@ -174,6 +189,21 @@ a.strava-login {
   }
 }
 
+.route-map-image {
+  // There's probably a better way to lay this out.
+  float: right;
+  margin: 8px;
+  width: 30%;
+  min-width: 300px;
+  height: auto;
+}
+
+.main-table-container {
+  min-width: 323px;
+  display: flex;
+  flex-direction: column;
+}
+
 .main-table {
   border-collapse: collapse;
 
@@ -207,13 +237,14 @@ footer {
   padding-top: 8px;
 }
 
+// TODO make this use the shared modal control
 .window-overlay {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   right: 0;
-  background-color: rgba(0,0,0,0.7);
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 .dialog {
@@ -227,17 +258,73 @@ footer {
 }
 
 .user-detail-row {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 
   label {
     margin-right: 16px;
   }
 
-  select,input {
+  select, input {
     margin-left: 8px;
     font-size: inherit;
   }
 }
+
+.login-options-container, .signup-options-container {
+  max-width: 500px;
+  position: relative;
+
+  hr {
+    margin-top: 2em;
+    margin-bottom: 1em;
+
+    &::before {
+      content: ' or ';
+      position: absolute;
+      margin-top: -16px;
+      background-color: white;
+      padding: 4px;
+      margin-left: 50%;
+      transform: translateX(-50%);
+    }
+  }
+}
+
+.login-form, .signup-form {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+
+  label {
+    display: flex;
+    margin-bottom: 8px;
+
+    input {
+      flex-grow: 1;
+    }
+  }
+
+  .birthdate-row {
+    label {
+      display: inline-block;
+    }
+  }
+
+  button {
+    cursor: pointer;
+    align-self: flex-end;
+    display: inline-block;
+    border-radius: 4px;
+    text-decoration: none;
+    padding: 8px 24px;
+    color: white;
+    background-color: cadetblue;
+    font-family: inherit;
+    font-size: inherit;
+    border: none;
+  }
+}
+
 
 #save_cancel_user_details {
   display: flex;
@@ -257,6 +344,7 @@ footer {
   display: flex;
   align-items: center;
   font-size: inherit;
+  border: none;
 
   &:disabled {
     background-color: lightgrey;
@@ -267,6 +355,100 @@ footer {
   }
 }
 
+.invite-code-dialog {
+  input {
+    margin-left: 8px;
+    font-size: inherit;
+    vertical-align: text-bottom;
+  }
+}
+
 span.material-icons {
   vertical-align: text-bottom;
+}
+
+.error {
+  color: red;
+}
+
+.form-field-description {
+  font-size: 80%;
+}
+
+.no-margin-top {
+  margin-top: 0;
+}
+
+.no-margin-bottom {
+  margin-bottom: 0;
+}
+
+.no-margin-left {
+  margin-left: 0;
+}
+
+.no-margin-right {
+  margin-right: 0;
+}
+
+.modal-dialog-container {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  pointer-events: all;
+
+  .modal-dialog {
+    position: relative;
+    background-color: white;
+    padding: 2em;
+    margin-left: 10%;
+    margin-right: 10%;
+    max-width: 800px;
+    margin-top: 50px;
+
+    .modal-dialog-close-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    .dialog-buttons {
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-end;
+
+
+      button {
+        cursor: pointer;
+        border-radius: 4px;
+        text-decoration: none;
+        padding: 8px 24px;
+        font-family: inherit;
+        font-size: inherit;
+      }
+
+      .cancel-button {
+        color: black;
+        background-color: white;
+        border: 2px solid black;
+
+        &:hover {
+          background-color: gainsboro;
+        }
+      }
+    }
+  }
+}
+
+button:disabled, button[disabled], button:disabled:hover, button[disabled]:hover {
+  border-color: lightgrey !important;
+  background-color: lightgrey !important;;
+  color: white !important;;
 }

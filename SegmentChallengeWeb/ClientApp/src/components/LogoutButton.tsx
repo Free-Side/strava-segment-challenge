@@ -4,7 +4,7 @@ import { ApplicationState } from "../store";
 import { ConfigurationState } from "../store/Configuration";
 
 const LogoutButton = (props: { config: ConfigurationState }) => (
-    <a href={`${props.config.apiBaseUrl}api/connect/logout`} className="strava-logout">Logout</a>
+    <a href={`${props.config.apiBaseUrl}api/connect/logout`} className="link-button strava-logout">Logout</a>
 );
 
 export default connect((state: ApplicationState, props) =>

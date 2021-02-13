@@ -1,16 +1,16 @@
 import * as React from "react";
-import {connect, Matching} from "react-redux";
-import {UploadEffortGpxState} from "../store/UploadEffortGpx";
+import { connect, Matching } from "react-redux";
+import { UploadEffortGpxState } from "../store/UploadEffortGpx";
 import * as ChallengeDetailStore from "../store/ChallengeDetails";
 import * as UploadEffortGpxStore from "../store/UploadEffortGpx";
-import {LoginState} from "../store/Login";
-import {ApplicationState} from "../store";
-import {ChangeEvent} from "react";
+import { LoginInfo, LoginState } from "../store/Login";
+import { ApplicationState } from "../store";
+import { ChangeEvent } from "react";
 
 type UploadEffortProps =
     UploadEffortGpxStore.UploadEffortGpxState &
     ChallengeDetailStore.ChallengeDetailsState &
-    { login?: LoginState } &
+    { loggedInUser?: LoginInfo } &
     {
         onAthleteIdChanged: (event: ChangeEvent<HTMLInputElement>) => void,
         onFileSelected: (event: ChangeEvent<HTMLInputElement>) => void,
@@ -22,7 +22,9 @@ class UploadEffortGpx extends React.PureComponent<Matching<UploadEffortProps, Up
     constructor(props: UploadEffortProps) {
         super(props);
 
-        this.state = {};
+        this.state = {
+            athleteId: props.athleteId
+        };
     }
 
     public render() {
@@ -58,7 +60,7 @@ class UploadEffortGpx extends React.PureComponent<Matching<UploadEffortProps, Up
         } else {
             fileInputRow = (
                 <div>
-                    <input type="file" name="challengeGxp" onChange={(e) => this.props.onFileSelected(e)}/>
+                    <input type="file" name="challengeGxp" onChange={(e) => this.props.onFileSelected(e)} />
                 </div>
             );
         }
@@ -68,11 +70,12 @@ class UploadEffortGpx extends React.PureComponent<Matching<UploadEffortProps, Up
                 <h3>
                     Upload Effort GPX Data
                 </h3>
-                <div>
-                    <label>Athlete:
-                        <input type="number" value={this.state.athleteId} onChange={(e) => this.props.onAthleteIdChanged(e)} />
-                    </label>
-                </div>
+                {this.props.loggedInUser && this.props.loggedInUser.user_data.is_admin &&
+                    <div>
+                        <label>Athlete:
+                            <input type="number" value={this.state.athleteId} onChange={(e) => this.props.onAthleteIdChanged(e)} />
+                        </label>
+                    </div>}
                 {fileInputRow}
             </div>
         );
@@ -80,6 +83,6 @@ class UploadEffortGpx extends React.PureComponent<Matching<UploadEffortProps, Up
 }
 
 export default connect(
-    (state: ApplicationState) => ({...state.uploadEffortGpx, ...state.challengeDetails, login: state.login}),
+    (state: ApplicationState) => ({ ...state.uploadEffortGpx, ...state.challengeDetails, loggedInUser: state.login?.loggedInUser }),
     UploadEffortGpxStore.actionCreators
 )(UploadEffortGpx);

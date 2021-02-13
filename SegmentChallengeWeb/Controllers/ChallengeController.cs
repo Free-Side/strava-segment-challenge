@@ -17,6 +17,7 @@ using SegmentChallengeWeb.Configuration;
 using SegmentChallengeWeb.Gpx;
 using SegmentChallengeWeb.Models;
 using SegmentChallengeWeb.Persistence;
+using SegmentChallengeWeb.Utils;
 
 namespace SegmentChallengeWeb.Controllers {
     [ApiController]
@@ -122,8 +123,7 @@ namespace SegmentChallengeWeb.Controllers {
         [HttpPost("{name}/register")]
         public async Task<IActionResult> Register(
             String name,
-            [FromQuery]
-            String inviteCode,
+            [FromQuery] String inviteCode,
             CancellationToken cancellationToken) {
 
             if (!(User is JwtCookiePrincipal identity)) {
@@ -150,7 +150,8 @@ namespace SegmentChallengeWeb.Controllers {
             if (!String.IsNullOrEmpty(challenge.InviteCode)) {
                 if (!String.Equals(challenge.InviteCode, inviteCode?.Trim(), StringComparison.OrdinalIgnoreCase)) {
                     return BadRequest(new ProblemDetails {
-                        Detail = "This challenge requires an invite code in order to join. Follow the registration link to receive an invite code."
+                        Detail = "This challenge requires an invite code in order to join. Follow the registration link to receive an invite code.",
+                        Type = "urn:segment-challenge-app:invalid-invite-code"
                     });
                 }
             }
@@ -496,7 +497,8 @@ namespace SegmentChallengeWeb.Controllers {
                 return NotFound();
             }
 
-            if (athlete.HasValue && !IsAdmin(identity)) {
+            if (athlete.HasValue && athlete.Value != identity.UserId && !IsAdmin(identity)) {
+                // Non-admins cannot upload results for other users.
                 return Forbid();
             }
 
@@ -602,7 +604,6 @@ namespace SegmentChallengeWeb.Controllers {
                         }
                     }
 
-
                     if (Distance(routePoint, nextPoint) <= Tolerance) {
                         match = true;
                         matchDistanceList.Add((Int32)Distance(routePoint, nextPoint));
@@ -693,6 +694,7 @@ namespace SegmentChallengeWeb.Controllers {
                     lock (rand) {
                         id = rand.Next(Int32.MinValue, -1) << 31 + rand.Next(Int32.MinValue, -1);
                     }
+
                     var newEffort = await effortsTable.AddAsync(
                         new Effort {
                             Id = id,
@@ -798,9 +800,416 @@ namespace SegmentChallengeWeb.Controllers {
             return Ok();
         }
 
+        [HttpPost("{name}/set_image")]
+        public async Task<IActionResult> SetRouteImage(
+            String name,
+            [FromForm] IFormFile imageFile,
+            CancellationToken cancellationToken) {
+
+            if (!(User is JwtCookiePrincipal identity)) {
+                return Unauthorized();
+            }
+
+            if (imageFile == null) {
+                return BadRequest("A file must be provided");
+            }
+
+            await using var connection = this.dbConnectionFactory();
+            await connection.OpenAsync(cancellationToken);
+
+            await using var dbContext = new SegmentChallengeDbContext(connection);
+            var challengeTable = dbContext.Set<Challenge>();
+
+            var challenge = await challengeTable.SingleOrDefaultAsync(
+                c => c.Name == name,
+                cancellationToken
+            );
+
+            if (challenge == null) {
+                return NotFound();
+            }
+
+            if (!IsAdmin(identity)) {
+                return Forbid();
+            }
+
+            await using var fileStream = imageFile.OpenReadStream();
+
+            challenge.RouteMapImage = await fileStream.ReadAllBytesAsync(cancellationToken: cancellationToken);
+
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            return Ok();
+        }
+
+        [HttpGet("invite_code")]
+        public IActionResult GenerateInviteCode() {
+            lock (rand) {
+                var word1 = InviteCodeWordList[rand.Next(0, InviteCodeWordList.Length)];
+                var subWordList = InviteCodeWordList.Where(w => !w.StartsWith(word1.Substring(0, 1), StringComparison.OrdinalIgnoreCase)).ToList();
+                var word2 = subWordList[rand.Next(0, subWordList.Count)];
+                return Ok(String.Join("", Capitalize(word1), Capitalize(word2), InviteCodeNumberList[rand.Next(0, InviteCodeNumberList.Length)].ToString()));
+            }
+        }
+
         private Boolean IsAdmin(JwtCookiePrincipal identity) {
             return this.siteConfiguration.Value.Administrators != null &&
                 this.siteConfiguration.Value.Administrators.Contains(identity.UserId);
         }
+
+        private static String Capitalize(String word) {
+            return $"{word.Substring(0, 1).ToUpperInvariant()}{word.Substring(1)}";
+        }
+
+        private static readonly String[] InviteCodeWordList = new[] {
+            "aero",
+            "air",
+            "all-rounder",
+            "alleycat",
+            "anchor",
+            "ano",
+            "apex",
+            "attack",
+            "auger",
+            "autobus",
+            "backie",
+            "bacon",
+            "bagger",
+            "bail",
+            "bars",
+            "basecamp",
+            "bead",
+            "beat",
+            "beater",
+            "beta",
+            "betty",
+            "bidon",
+            "biff",
+            "bike",
+            "biopace",
+            "blast",
+            "blocking",
+            "bog",
+            "boing",
+            "bomb",
+            "bonk",
+            "boost",
+            "booties",
+            "boulder",
+            "bracket",
+            "brain",
+            "brake",
+            "brakes",
+            "braze-ons",
+            "break",
+            "breakaway",
+            "brick",
+            "bridge",
+            "broom",
+            "bully",
+            "bunch",
+            "bunny",
+            "burrito",
+            "bust",
+            "buzz",
+            "cadence",
+            "campy",
+            "cantilever",
+            "captain",
+            "caravan",
+            "carve",
+            "cashed",
+            "cassette",
+            "category",
+            "century",
+            "ceramic",
+            "chain",
+            "chase",
+            "chicane",
+            "chunder",
+            "chute",
+            "classic",
+            "clean",
+            "cleat",
+            "climber",
+            "climber",
+            "clincher",
+            "clip",
+            "cluster",
+            "cog",
+            "col",
+            "commissaire",
+            "components",
+            "counter",
+            "crack",
+            "crank",
+            "crater",
+            "crayon",
+            "creamed",
+            "criterium",
+            "dab",
+            "derailleur",
+            "descender",
+            "DFL",
+            "dialed",
+            "diesel",
+            "digger",
+            "dirt",
+            "dishing",
+            "domestique",
+            "doubletrack",
+            "downhill",
+            "draft",
+            "drafting",
+            "drillium",
+            "drop",
+            "drop-off",
+            "dropout",
+            "drops",
+            "dual-track",
+            "echelon",
+            "echlon",
+            "endo",
+            "enduro",
+            "extreme",
+            "face-plant",
+            "false-flat",
+            "fast",
+            "feed-zone",
+            "field",
+            "fishtail",
+            "fixed",
+            "fixie",
+            "flail",
+            "flash",
+            "flat",
+            "flex",
+            "flick",
+            "follow",
+            "fork",
+            "frame",
+            "free-ride",
+            "gap",
+            "gear",
+            "giblets",
+            "gnarly",
+            "gonzo",
+            "granny",
+            "grate",
+            "grindies",
+            "gripped",
+            "group",
+            "grunt",
+            "gruppetto",
+            "guttered",
+            "half",
+            "hammer",
+            "hammered",
+            "hammerhead",
+            "handicap",
+            "hanging",
+            "hardcore",
+            "hardtail",
+            "head",
+            "header",
+            "headset",
+            "hill",
+            "honking",
+            "hop",
+            "hub",
+            "hucker",
+            "hybrid",
+            "hydraulic",
+            "hyperglide",
+            "jump",
+            "kack",
+            "keirin",
+            "kicker",
+            "kit",
+            "knock",
+            "knurled",
+            "KOM",
+            "lead-out",
+            "leech",
+            "lid",
+            "limit",
+            "line",
+            "lug",
+            "madison",
+            "manual",
+            "Marin",
+            "mash",
+            "mechanic",
+            "modulation",
+            "moto",
+            "marshal",
+            "mountain",
+            "MTB",
+            "musette",
+            "neo-pro",
+            "NORBA",
+            "off-camber",
+            "omnium",
+            "overgeared",
+            "overlap",
+            "paceline",
+            "pack",
+            "palmares",
+            "panache",
+            "panic",
+            "pannier",
+            "pass",
+            "pedaling",
+            "peloton",
+            "pep",
+            "phat",
+            "pinch",
+            "pitch",
+            "pogo",
+            "portage",
+            "poser",
+            "poursuivant",
+            "power",
+            "powerslide",
+            "prang",
+            "Presta",
+            "prime",
+            "prologue",
+            "prune",
+            "pull",
+            "pump",
+            "pumped",
+            "race",
+            "railing",
+            "rake",
+            "rally",
+            "randonee",
+            "rash",
+            "relay",
+            "rigid",
+            "ring",
+            "road",
+            "roadie",
+            "rock",
+            "rollers",
+            "saddle",
+            "Schraeder",
+            "schwag",
+            "scratch",
+            "scream",
+            "screamer",
+            "seat",
+            "post",
+            "stay",
+            "sew-ups",
+            "shapes",
+            "shelled",
+            "shifter",
+            "singles",
+            "singletrack",
+            "sitting-on",
+            "sketching",
+            "slicks",
+            "soigneur",
+            "specialist",
+            "spider",
+            "spike",
+            "spin",
+            "spinout",
+            "splatter",
+            "sportif",
+            "sprint",
+            "sprinter",
+            "sprints",
+            "spuds",
+            "squares",
+            "squirrel",
+            "stack",
+            "stage",
+            "stair-gap",
+            "stand",
+            "stayer",
+            "steed",
+            "steerer",
+            "stem",
+            "sticky",
+            "stoked",
+            "stoned",
+            "suck",
+            "superman",
+            "swag",
+            "swingoff",
+            "table",
+            "taco",
+            "team",
+            "tech",
+            "technical",
+            "tempo",
+            "tester",
+            "thrash",
+            "ti",
+            "tifosi",
+            "time-trial",
+            "top",
+            "topo",
+            "tornado",
+            "track",
+            "trail",
+            "train",
+            "trainer",
+            "trainer",
+            "trials",
+            "triangle",
+            "tube",
+            "tubular",
+            "tuck",
+            "turn",
+            "tweak",
+            "UCI",
+            "upstroke",
+            "urban",
+            "USAC",
+            "USCF",
+            "valve",
+            "velo",
+            "velodrome",
+            "wagon",
+            "wall",
+            "wash-out",
+            "washboard",
+            "water",
+            "weight",
+            "wheelie",
+            "wheel",
+            "winky",
+            "wipeout",
+            "wrench",
+            "yellow",
+            "zone",
+            "zonk",
+        };
+
+        private static readonly Int32[] InviteCodeNumberList = new[] {
+            5,
+            9,
+            10,
+            11,
+            20,
+            40,
+            29,
+            49,
+            48,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            100,
+            112,
+            700,
+            650,
+        };
     }
 }
