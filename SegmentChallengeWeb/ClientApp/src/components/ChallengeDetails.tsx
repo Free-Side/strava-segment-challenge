@@ -141,6 +141,7 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                 </div>
                 {this.props.login?.loggedInUser?.user_data.is_admin && <UploadChallengeGpx selectedCategory={this.props.selectedCategory} />}
                 {this.props.isAthleteRegistered &&
+                this.props.currentChallenge.startDate > new Date() &&
                 <UploadEffortGpx selectedCategory={this.props.selectedCategory} />}
 
                 <Modal open={this.props.waitingForInviteCode === true} closeModal={() => this.props.cancelJoin()}>
