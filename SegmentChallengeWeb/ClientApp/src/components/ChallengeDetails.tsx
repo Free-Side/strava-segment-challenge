@@ -1,21 +1,23 @@
 import * as React from 'react';
+import { ChangeEvent } from 'react';
 import { connect, Matching } from 'react-redux';
-import { Redirect, RouteComponentProps } from "react-router";
-import { Link } from "react-router-dom";
-import EffortList from "./EffortList";
-import UploadChallengeGpx from "./UploadChallengeGpx";
-import NoEffortList from "./NoEffortList";
-import UploadEffortGpx from "./UploadEffortGpx";
-import { ApplicationState } from "../store";
-import { Challenge } from "../store/ChallengeList";
-import * as ChallengeDetailStore from "../store/ChallengeDetails"
-import * as ChallengeListStore from "../store/ChallengeList"
-import { LoginState } from "../store/Login";
-import { Category } from "../store/ChallengeDetails";
-import { Modal } from "../shared/Modal";
-import { onEnterKey } from "../shared/EventHelpers";
-import { ChangeEvent } from "react";
-import { IQueryParamsProps, withQueryParams } from "../shared/WithQueryParams";
+import { Redirect, RouteComponentProps } from 'react-router';
+import { Link } from 'react-router-dom';
+import parse from 'html-react-parser';
+
+import EffortList from './EffortList';
+import UploadChallengeGpx from './UploadChallengeGpx';
+import NoEffortList from './NoEffortList';
+import UploadEffortGpx from './UploadEffortGpx';
+import { ApplicationState } from '../store';
+import { Challenge } from '../store/ChallengeList';
+import * as ChallengeDetailStore from '../store/ChallengeDetails'
+import * as ChallengeListStore from '../store/ChallengeList'
+import { LoginState } from '../store/Login';
+import { Category } from '../store/ChallengeDetails';
+import { Modal } from '../shared/Modal';
+import { onEnterKey } from '../shared/EventHelpers';
+import { IQueryParamsProps, withQueryParams } from '../shared/WithQueryParams';
 
 type ChallengeDetailsProps =
     ChallengeDetailStore.ChallengeDetailsState &
@@ -115,11 +117,16 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                               className="effort-link">
                             Your Effort
                         </Link> :
-                        (this.props.isAthleteRegistered === true && <span className="joined-successfully">You have joined. Check back later for your efforts.</span>)}
+                        (this.props.isAthleteRegistered === true &&
+                            <span className="joined-successfully">You have joined. Check back later for your efforts.</span>)}
                 </div>
                 {this.props.currentChallenge.routeMapImage &&
-                <img src={"data:image/png;base64," + this.props.currentChallenge.routeMapImage} alt="A map of the segment route."
-                     className="route-map-image" />}
+                <a href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`}
+                   target="_blank">
+                    <img src={"data:image/png;base64," + this.props.currentChallenge.routeMapImage} alt="A map of the segment route."
+                         className="route-map-image" />
+                </a>}
+                <p>{parse(this.props.currentChallenge.description)}</p>
                 <div className="main-table-container">
                     <h3>{this.props.selectedCategory.description}</h3>
                     <div className="flex-row row">
