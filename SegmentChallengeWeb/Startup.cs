@@ -59,17 +59,20 @@ namespace SegmentChallengeWeb {
                 var configuration =
                     provider.GetRequiredService<IOptions<MySqlConfiguration>>().Value;
 
+                var logger = provider.GetRequiredService<ILogger<Startup>>();
                 return () => {
                     var builder = new MySqlConnectionStringBuilder {
                         Port = configuration.Port,
                         Server = configuration.Host,
                         Database = configuration.Database,
                         UserID = configuration.User,
-                        Password = configuration.Password,
+                        Password = "<REDACTED>",
                         CharacterSet = "utf8mb4",
                         SslMode = MySqlSslMode.None,
                         IgnoreCommandTransaction = true
                     };
+                    logger.LogDebug("SegmentChallenge Database Connection String: " + builder.ToString());
+                    builder.Password = configuration.Password;
 
                     return new MySqlConnection(builder.ToString());
                 };

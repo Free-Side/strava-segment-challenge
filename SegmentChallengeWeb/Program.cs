@@ -6,16 +6,17 @@ using Microsoft.Extensions.Logging;
 
 namespace SegmentChallengeWeb {
     public static class Program {
-        public static void Main(string[] args) {
+        public static void Main(String[] args) {
             CreateWebHostBuilder(args).Build().Run();
         }
 
-        public static IHostBuilder CreateWebHostBuilder(string[] args) {
+        public static IHostBuilder CreateWebHostBuilder(String[] args) {
             return Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(builder => {
                     builder.ConfigureAppConfiguration((hostContext, config) => {
                             var environmentName =
                                 hostContext.HostingEnvironment.EnvironmentName;
+                            Console.WriteLine($"Hosting Environment Name: {environmentName}");
                             config
                                 .AddJsonFile("appsettings.json", optional: true)
                                 .AddJsonFile($"{Environment.GetEnvironmentVariable("CONFIG_PATH")  ?? "config"}/appsettings.{environmentName}.json", optional: false)

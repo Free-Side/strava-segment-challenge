@@ -48,7 +48,6 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
     }
 
     public componentDidMount() {
-        console.log('ChallengeDetails.componentDidMount');
         this.props.onSelectedChallengeChanged(this.props.match.params.challengeName);
 
         // Only use the query parameter if we don't have this in our props yet.
@@ -58,8 +57,15 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
         }
 
         if (this.props.login?.loggedInUser && this.props.isAthleteRegistered === undefined && this.props.selectedChallengeName) {
+            // console.log('refresh registration');
             this.props.refreshRegistrationStatus(this.props.selectedChallengeName);
-        }
+        } /* else {
+            console.log(JSON.stringify({
+                loggedInUser: this.props.login?.loggedInUser?.sub,
+                isAthleteRegistered: this.props.isAthleteRegistered,
+                selectedChallengeName: this.props.selectedChallengeName
+            }))
+        } */
     }
 
     public componentDidUpdate() {
@@ -109,7 +115,7 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                               className="effort-link">
                             Your Effort
                         </Link> :
-                        (this.props.isAthleteRegistered === true && <span>You have joined. Check back later for your efforts.</span>)}
+                        (this.props.isAthleteRegistered === true && <span className="joined-successfully">You have joined. Check back later for your efforts.</span>)}
                 </div>
                 {this.props.currentChallenge.routeMapImage &&
                 <img src={"data:image/png;base64," + this.props.currentChallenge.routeMapImage} alt="A map of the segment route."

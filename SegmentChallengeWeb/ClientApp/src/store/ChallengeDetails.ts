@@ -522,8 +522,6 @@ export const reducer: Reducer<ChallengeDetailsState> =
             case ChallengeDetailActions.ServerRequestError:
             case 'ERROR_FETCHING_CHALLENGE_LIST':
                 return { ...state, errorMessage: (action as HasMessage).message };
-            case 'LOGGED_IN':
-                return { ...state, isAthleteRegistered: undefined };
         }
 
         return state;
