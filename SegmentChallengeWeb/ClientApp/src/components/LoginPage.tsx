@@ -6,6 +6,7 @@ import * as LoginStore from "../store/Login";
 import StravaLoginButton from "./StravaLoginButton";
 import { Redirect } from "react-router";
 import { onEnterKey } from "../shared/EventHelpers";
+import { IQueryParamsProps, withQueryParams } from "../shared/WithQueryParams";
 
 type LoginPageProps = {
     userEmail?: string,
@@ -13,12 +14,13 @@ type LoginPageProps = {
     loggedInUser?: LoginStore.LoginInfo
 } & {
     usernamePasswordLogin: (credentials: { email: string, password: string }) => void
-};
+} & IQueryParamsProps;
 
 type LoginPageState = {
     email: string,
     password: string,
-    loggingIn: boolean
+    loggingIn: boolean,
+    returnUrl?: string
 };
 
 class LoginPage extends React.PureComponent<LoginPageProps, LoginPageState> {
@@ -28,7 +30,8 @@ class LoginPage extends React.PureComponent<LoginPageProps, LoginPageState> {
         this.state = {
             email: props.userEmail ?? '',
             password: '',
-            loggingIn: false
+            loggingIn: false,
+            returnUrl: props.queryParams.get('returnUrl') ?? undefined,
         };
 
         this.handleEmailChanged = this.handleEmailChanged.bind(this);
@@ -37,12 +40,13 @@ class LoginPage extends React.PureComponent<LoginPageProps, LoginPageState> {
 
     public render() {
         if (this.props.loggedInUser) {
-            return <Redirect to="/" />;
+            console.log(`Logged in. Redirecting to ${this.state.returnUrl || '/'}`);
+            return <Redirect to={this.state.returnUrl || '/'} />;
         } else {
             return (
                 <div className="login-options-container">
                     {/* TODO: Add Login with Google, Facebook */}
-                    <StravaLoginButton />
+                    <StravaLoginButton returnUrl={this.state.returnUrl} />
                     <hr />
                     <form className="login-form">
                         <label>Email:
@@ -84,4 +88,4 @@ export default connect(
         loginError: state.login?.loginError
     }),
     LoginStore.actionCreators
-)(LoginPage);
+)(withQueryParams(LoginPage));

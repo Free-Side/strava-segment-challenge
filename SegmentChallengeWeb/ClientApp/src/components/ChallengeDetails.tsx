@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { connect, Matching } from 'react-redux';
-import { RouteComponentProps } from "react-router";
+import { Redirect, RouteComponentProps } from "react-router";
 import { Link } from "react-router-dom";
 import EffortList from "./EffortList";
 import UploadChallengeGpx from "./UploadChallengeGpx";
@@ -15,6 +15,7 @@ import { Category } from "../store/ChallengeDetails";
 import { Modal } from "../shared/Modal";
 import { onEnterKey } from "../shared/EventHelpers";
 import { ChangeEvent } from "react";
+import { IQueryParamsProps, withQueryParams } from "../shared/WithQueryParams";
 
 type ChallengeDetailsProps =
     ChallengeDetailStore.ChallengeDetailsState &
@@ -22,15 +23,21 @@ type ChallengeDetailsProps =
     { login?: LoginState } &
     {
         onSelectedChallengeChanged: (selectedChallenge: string) => void,
+        refreshRegistrationStatus: (selectedChallenge: string) => void,
         selectedCategoryChanged: (selectedCategory: Category) => ChallengeDetailStore.SelectedCategoryChanged,
         joinChallenge: (inviteCode?: string) => void,
         cancelJoin: () => void,
         inviteCodeChanged: (inviteCode: string) => void,
     } &
-    RouteComponentProps<{ challengeName: string }>;
+    RouteComponentProps<{ challengeName: string }> &
+    IQueryParamsProps;
 
 type ChallengeDetailsState = {
     bestEffort?: number
+};
+
+function relativeUrl(location: Location) {
+    return [location.pathname, location.search, location.hash].join('');
 }
 
 class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProps, ChallengeDetailsProps>, ChallengeDetailsState> {
@@ -41,7 +48,18 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
     }
 
     public componentDidMount() {
+        console.log('ChallengeDetails.componentDidMount');
         this.props.onSelectedChallengeChanged(this.props.match.params.challengeName);
+
+        // Only use the query parameter if we don't have this in our props yet.
+        let inviteCode = this.props.queryParams.get('inviteCode') ?? undefined;
+        if (!this.props.inviteCode && inviteCode) {
+            this.props.inviteCodeChanged(inviteCode);
+        }
+
+        if (this.props.login?.loggedInUser && this.props.isAthleteRegistered === undefined && this.props.selectedChallengeName) {
+            this.props.refreshRegistrationStatus(this.props.selectedChallengeName);
+        }
     }
 
     public componentDidUpdate() {
@@ -56,6 +74,13 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
     }
 
     public render() {
+        if (this.props.inviteCode && !this.props.login?.loggedInUser) {
+            // If a user is trying to register, but isn't logged in, suggest that the sign up
+            return (
+                <Redirect to={`/signup?returnUrl=${encodeURIComponent(relativeUrl(this.props.location))}`} />
+            );
+        }
+
         return (
             <React.Fragment>
                 {this.props.requestError &&
@@ -164,4 +189,4 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
 export default connect(
     (state: ApplicationState) => ({ ...state.challengeList, ...state.challengeDetails, login: state.login }),
     ChallengeDetailStore.actionCreators
-)(ChallengeDetails);
+)(withQueryParams(ChallengeDetails));

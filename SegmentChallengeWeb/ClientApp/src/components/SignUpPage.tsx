@@ -5,13 +5,15 @@ import { ApplicationState } from "../store";
 import * as LoginStore from "../store/Login";
 import StravaLoginButton from "./StravaLoginButton";
 import { Redirect } from "react-router";
+import { Link } from "react-router-dom";
+import { IQueryParamsProps, withQueryParams } from "../shared/WithQueryParams";
 
 type SignUpPageProps = {
     signUpError?: string,
     loggedInUser?: LoginStore.LoginInfo
 } & {
     signUp: (profile: LoginStore.UserSignUp) => void
-}
+} & IQueryParamsProps;
 
 type SignUpPageState = {
     email?: string,
@@ -23,7 +25,8 @@ type SignUpPageState = {
     year?: number,
     month?: number,
     day?: number,
-    gender?: string
+    gender?: string,
+    returnUrl?: string,
 }
 
 const months = [
@@ -76,7 +79,8 @@ class SignUpPage extends React.PureComponent<SignUpPageProps, SignUpPageState> {
             year: undefined,
             month: undefined,
             day: undefined,
-            gender: undefined
+            gender: undefined,
+            returnUrl: props.queryParams.get('returnUrl') ?? undefined
         };
 
         this.handleEmailChanged = this.handleEmailChanged.bind(this);
@@ -94,111 +98,116 @@ class SignUpPage extends React.PureComponent<SignUpPageProps, SignUpPageState> {
     public render() {
         if (this.props.loggedInUser) {
             console.log('sign up successful. Redirecting.');
-            return <Redirect to="/" />;
+            return <Redirect to={this.state.returnUrl ?? '/'} />;
         } else {
             return (
-                <div className="signup-options-container">
-                    <StravaLoginButton signup={true} />
-                    <hr />
-                    <form className="signup-form">
-                        <h2>Sign Up</h2>
-                        <p>In order to participate in challenges we need to know a little bit about you.</p>
-                        <div className="user-detail-row">
-                            <label>Email <span className="material-icons"
-                                               title="Your email address will only be used for you to sign in, and to send you a confirmation of prizes at the end of the challenge. We will not share your information with third parties.">help_outline</span>:
-                                <input type="email"
-                                       name="email"
-                                       value={this.state.email}
-                                       onChange={this.handleEmailChanged} />
-                            </label>
-                            <p className="form-field-description no-margin-bottom">You will use your Email to log in.</p>
-                        </div>
-                        <div className="user-detail-row">
-                            <label>Password:
-                                <input type="password"
-                                       name="password"
-                                       value={this.state.password}
-                                       onChange={this.handlePasswordChanged} />
-                            </label>
-                            <p className={`form-field-description no-margin-bottom ${(!this.state.password?.length || this.state.password?.length >= 7) ? '' : 'error'}`}>Your
-                                password must be at least 7 characters.</p>
-                        </div>
-                        <div className="user-detail-row">
-                            <label>Confirm Password:
-                                <input type="password"
-                                       name="confirmPassword"
-                                       value={this.state.confirmPassword}
-                                       onChange={this.handleConfirmPasswordChanged} />
-                            </label>
-                            {this.state.confirmPassword &&
-                            this.state.confirmPassword != this.state.password &&
-                            <p className="form-field-description error">The passwords must match exactly.</p>}
+                <div className="signup-page-container">
+                    <div className="signup-options-container">
+                        <StravaLoginButton signup={true} returnUrl={this.state.returnUrl} />
+                        <hr />
+                        <form className="signup-form">
+                            <h2>Sign Up</h2>
+                            <p>In order to participate in challenges we need to know a little bit about you.</p>
+                            <div className="user-detail-row">
+                                <label>Email <span className="material-icons"
+                                                   title="Your email address will only be used for you to sign in, and to send you a confirmation of prizes at the end of the challenge. We will not share your information with third parties.">help_outline</span>:
+                                    <input type="email"
+                                           name="email"
+                                           value={this.state.email}
+                                           onChange={this.handleEmailChanged} />
+                                </label>
+                                <p className="form-field-description no-margin-bottom">You will use your Email to log in.</p>
+                            </div>
+                            <div className="user-detail-row">
+                                <label>Password:
+                                    <input type="password"
+                                           name="password"
+                                           value={this.state.password}
+                                           onChange={this.handlePasswordChanged} />
+                                </label>
+                                <p className={`form-field-description no-margin-bottom ${(!this.state.password?.length || this.state.password?.length >= 7) ? '' : 'error'}`}>Your
+                                    password must be at least 7 characters.</p>
+                            </div>
+                            <div className="user-detail-row">
+                                <label>Confirm Password:
+                                    <input type="password"
+                                           name="confirmPassword"
+                                           value={this.state.confirmPassword}
+                                           onChange={this.handleConfirmPasswordChanged} />
+                                </label>
+                                {this.state.confirmPassword &&
+                                this.state.confirmPassword != this.state.password &&
+                                <p className="form-field-description error">The passwords must match exactly.</p>}
 
-                        </div>
-                        <div className="user-detail-row">
-                            <label>Display Name:
-                                <input type="text"
-                                       name="username"
-                                       value={this.state.username}
-                                       onChange={this.handleUsernameChanged} />
-                            </label>
-                            <p className="form-field-description no-margin-bottom">This name will be displayed in leader boards.</p>
-                        </div>
-                        <div className="user-detail-row">
-                            <label>First Name:
-                                <input type="text"
-                                       name="firstName"
-                                       value={this.state.firstName}
-                                       onChange={this.handleFirstNameChanged} />
-                            </label>
-                        </div>
-                        <div className="user-detail-row">
-                            <label>Last Name:
-                                <input type="text"
-                                       name="lastName"
-                                       value={this.state.lastName}
-                                       onChange={this.handleLastNameChanged} />
-                            </label>
-                        </div>
-                        <div className="user-detail-row birthdate-row">
-                            <p className="form-field-description no-margin-top">Birthdate</p>
-                            <label>Month:
-                                <select value={this.state.month} onChange={this.handleMonthChanged}>
-                                    <option value={undefined}></option>
-                                    {months.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-                                </select>
-                            </label>
-                            <label>Day:
-                                <select value={this.state.day} onChange={this.handleDayChanged}>
-                                    <option value={undefined}></option>
-                                    {[...Array(getDaysPerMonth(this.state.year, this.state.month))]
-                                        .map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
-                                </select>
-                            </label>
-                            <label>Year:
-                                <select value={this.state.year} onChange={this.handleYearChanged}>
-                                    <option value={undefined}></option>
-                                    {yearArray.map(y => <option key={y} value={y}>{y}</option>)}
-                                </select>
-                            </label>
-                        </div>
-                        <div className="user-detail-row">
-                            <label>Gender:
-                                <select value={this.state.gender} onChange={this.handleGenderChanged}>
-                                    <option value={undefined}></option>
-                                    <option value="M">Male</option>
-                                    <option value="F">Female</option>
-                                </select>
-                            </label>
-                        </div>
-                        {this.props.signUpError &&
-                        <p className="error">{this.props.signUpError}</p>}
-                        <button id="sign_up_button"
-                                type="button"
-                                disabled={!(this.state.email && this.state.password && (this.state.password === this.state.confirmPassword) && this.state.firstName && this.state.lastName && this.state.year && this.state.month && this.state.day && this.state.gender)}
-                                onClick={() => this.signUp()}>Sign Up
-                        </button>
-                    </form>
+                            </div>
+                            <div className="user-detail-row">
+                                <label>Display Name:
+                                    <input type="text"
+                                           name="username"
+                                           value={this.state.username}
+                                           onChange={this.handleUsernameChanged} />
+                                </label>
+                                <p className="form-field-description no-margin-bottom">This name will be displayed in leader boards.</p>
+                            </div>
+                            <div className="user-detail-row">
+                                <label>First Name:
+                                    <input type="text"
+                                           name="firstName"
+                                           value={this.state.firstName}
+                                           onChange={this.handleFirstNameChanged} />
+                                </label>
+                            </div>
+                            <div className="user-detail-row">
+                                <label>Last Name:
+                                    <input type="text"
+                                           name="lastName"
+                                           value={this.state.lastName}
+                                           onChange={this.handleLastNameChanged} />
+                                </label>
+                            </div>
+                            <div className="user-detail-row birthdate-row">
+                                <p className="form-field-description no-margin-top">Birthdate</p>
+                                <label>Month:
+                                    <select value={this.state.month} onChange={this.handleMonthChanged}>
+                                        <option value={undefined}></option>
+                                        {months.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                                    </select>
+                                </label>
+                                <label>Day:
+                                    <select value={this.state.day} onChange={this.handleDayChanged}>
+                                        <option value={undefined}></option>
+                                        {[...Array(getDaysPerMonth(this.state.year, this.state.month))]
+                                            .map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
+                                    </select>
+                                </label>
+                                <label>Year:
+                                    <select value={this.state.year} onChange={this.handleYearChanged}>
+                                        <option value={undefined}></option>
+                                        {yearArray.map(y => <option key={y} value={y}>{y}</option>)}
+                                    </select>
+                                </label>
+                            </div>
+                            <div className="user-detail-row">
+                                <label>Gender:
+                                    <select value={this.state.gender} onChange={this.handleGenderChanged}>
+                                        <option value={undefined}></option>
+                                        <option value="M">Male</option>
+                                        <option value="F">Female</option>
+                                    </select>
+                                </label>
+                            </div>
+                            {this.props.signUpError &&
+                            <p className="error">{this.props.signUpError}</p>}
+                            <button id="sign_up_button"
+                                    type="button"
+                                    disabled={!(this.state.email && this.state.password && (this.state.password === this.state.confirmPassword) && this.state.firstName && this.state.lastName && this.state.year && this.state.month && this.state.day && this.state.gender)}
+                                    onClick={() => this.signUp()}>Sign Up
+                            </button>
+                        </form>
+                    </div>
+                    <div className="login-link-container">
+                        Already signed up? <Link to={this.state.returnUrl ? `/login?returnUrl=${encodeURIComponent(this.state.returnUrl)}` : '/login'}>Log in instead.</Link>
+                    </div>
                 </div>
             );
         }
@@ -268,4 +277,4 @@ class SignUpPage extends React.PureComponent<SignUpPageProps, SignUpPageState> {
 
 export default connect(
     (state: ApplicationState) => ({ loggedInUser: state.login?.loggedInUser, signUpError: state.login?.signUpError }),
-    LoginStore.actionCreators)(SignUpPage);
+    LoginStore.actionCreators)(withQueryParams(SignUpPage));

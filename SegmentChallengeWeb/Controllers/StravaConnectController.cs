@@ -47,14 +47,14 @@ namespace SegmentChallengeWeb.Controllers {
 
         // GET
         [HttpGet("login")]
-        public IActionResult Login() {
+        public IActionResult Login([FromQuery] String returnUrl) {
             Int32 state;
             lock (rand) {
                 state = rand.Next();
             }
 
             Response.Cookies.Append("authentication_state", state.ToString());
-            return Redirect(BuildAuthenticationRedirectUri(state).ToString());
+            return Redirect(BuildAuthenticationRedirectUri(state, returnUrl).ToString());
         }
 
         [HttpGet("authorize")]
@@ -62,6 +62,7 @@ namespace SegmentChallengeWeb.Controllers {
             [FromQuery] String state,
             [FromQuery] String code,
             [FromQuery] String scope,
+            [FromQuery] String returnUrl,
             CancellationToken cancellationToken) {
             var expected_state = Request.Cookies["authentication_state"];
             if (!String.Equals(state, expected_state)) {
@@ -167,7 +168,7 @@ namespace SegmentChallengeWeb.Controllers {
                 );
 
 
-                return Redirect("/");
+                return Redirect(String.IsNullOrEmpty(returnUrl) ? "/" : HttpUtility.UrlDecode(returnUrl));
             } else {
                 logger.LogError(
                     "Authentication Failed with HTTP Status {StatusCode}: {Content}",
@@ -212,16 +213,22 @@ namespace SegmentChallengeWeb.Controllers {
             return tokenHandler.WriteToken(token);
         }
 
-        private Uri BuildAuthenticationRedirectUri(Int32 state) {
+        private Uri BuildAuthenticationRedirectUri(Int32 state, String returnUrl = null) {
+            var baseUrl =
+                $"{this.challengeConfiguration.Value.BaseUrl}{this.challengeConfiguration.Value.CallbackUrlPrefix}/api/connect/authorize";
+
+            var redirectUri =
+                String.IsNullOrEmpty(returnUrl) ?
+                    baseUrl :
+                    $"{baseUrl}?returnUrl={HttpUtility.UrlEncode(returnUrl)}";
+
             var uriBuilder = new UriBuilder {
                 Scheme = "https",
                 Host = "www.strava.com",
                 Path = "/oauth/mobile/authorize",
                 Query = ToQueryString(new Dictionary<String, String> {
-                    { "client_id", this.stravaConfiguration.Value.ClientId }, {
-                        "redirect_uri",
-                        $"{this.challengeConfiguration.Value.BaseUrl}{this.challengeConfiguration.Value.CallbackUrlPrefix}/api/connect/authorize"
-                    },
+                    { "client_id", this.stravaConfiguration.Value.ClientId },
+                    { "redirect_uri", redirectUri },
                     { "response_type", "code" },
                     { "approval_prompt", "auto" },
                     { "scope", "activity:read" },

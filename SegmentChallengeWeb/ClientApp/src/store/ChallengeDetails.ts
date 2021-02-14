@@ -1,7 +1,8 @@
 import * as ChallengeListStore from "./ChallengeList";
-import { AppThunkAction } from "./index";
+import { ApplicationState, AppThunkAction } from "./index";
 import { AnyAction, Reducer } from "redux";
 import { generateErrorMessage, hasContent } from "../RestHelper";
+import { LoggedInAction } from "./Login";
 
 export interface AgeGroup {
     maximumAge: number,
@@ -41,14 +42,15 @@ export interface ChallengeDetailsState {
     ageGroups?: AgeGroup[],
     allEfforts?: Effort[],
     allAthletes?: Athlete[],
-    errorMessage?: string
+    errorMessage?: string,
+    fetchingRegistrationStatusFor?: string,
 }
-
 
 export enum ChallengeDetailActions {
     SelectedChallengeChanged = 'SELECTED_CHALLENGE_CHANGED',
     CurrentChallengeChanged = 'CURRENT_CHALLENGE_CHANGED',
     SelectedCategoryChanged = 'SELECTED_CATEGORY_CHANGED',
+    FetchingRegistationStatus = 'FETCHING_REGISTRATION_STATUS',
     RegistrationStatusReceived = 'REGISTRATION_STATUS_RECEIVED',
     AgeGroupsReceived = 'AGE_GROUPS_RECEIVED',
     EffortsReceived = 'EFFORTS_RECEIVED',
@@ -74,6 +76,11 @@ export interface SelectedCategoryChanged {
 export interface CurrentChallengeChanged {
     type: ChallengeDetailActions.CurrentChallengeChanged,
     currentChallenge: ChallengeListStore.Challenge | undefined
+}
+
+export interface FetchingRegistationStatus {
+    type: ChallengeDetailActions.FetchingRegistationStatus,
+    selectedChallengeName: string,
 }
 
 export interface RegistrationStatusReceived {
@@ -133,6 +140,7 @@ type KnownAction =
     SelectedChallengeChanged
     | CurrentChallengeChanged
     | SelectedCategoryChanged
+    | FetchingRegistationStatus
     | RegistrationStatusReceived
     | AgeGroupsReceived
     | EffortsReceived
@@ -145,10 +153,55 @@ type KnownAction =
     | ServerRequestError
     | ChallengeListStore.RequestChallengeListAction
     | ChallengeListStore.ReceiveChallengeListAction
-    | ChallengeListStore.ErrorFetchingChallengeListAction;
+    | ChallengeListStore.ErrorFetchingChallengeListAction
+    | LoggedInAction;
 
 function getSelectedChallenge(challenges: ChallengeListStore.Challenge[], selectedChallenge: string): ChallengeListStore.Challenge | undefined {
     return challenges.filter(c => c.name === selectedChallenge)[0];
+}
+
+function fetchRegistrationStatus(appState: ApplicationState, selectedChallenge: string, dispatch: (action: KnownAction) => void) {
+    if (appState.challengeDetails?.fetchingRegistrationStatusFor === selectedChallenge) {
+        // Don't fetch multiple times
+        return;
+    }
+
+    // Fetch Registration Status
+    dispatch({
+        type: ChallengeDetailActions.FetchingRegistationStatus,
+        selectedChallengeName: selectedChallenge
+    })
+    fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/registration`, { credentials: 'same-origin' })
+        .then(async response => {
+            if (response.ok) {
+                const data = await response.json();
+                dispatch({
+                    type: ChallengeDetailActions.RegistrationStatusReceived,
+                    selectedChallengeName: selectedChallenge,
+                    registrationStatus: data.registered
+                });
+            } else {
+                let detail: string;
+                if (hasContent(response)) {
+                    detail = await response.text();
+                } else {
+                    detail = 'Unknown';
+                }
+
+                console.error(`Error fetching registration status. Status: ${response.status}, Status Description: ${response.statusText}, Detail: ${detail}`);
+
+                dispatch({
+                    type: ChallengeDetailActions.ServerRequestError,
+                    message: generateErrorMessage('registration status', response.status, response.statusText, detail)
+                });
+            }
+        })
+        .catch(error => {
+            dispatch({
+                type: ChallengeDetailActions.ServerRequestError,
+                message: error
+            })
+        });
 }
 
 export const actionCreators = {
@@ -174,38 +227,7 @@ export const actionCreators = {
                 }
 
                 if (appState.login?.loggedInUser) {
-                    // Fetch Registration Status
-                    fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/registration`, { credentials: 'same-origin' })
-                        .then(async response => {
-                            if (response.ok) {
-                                const data = await response.json();
-                                dispatch({
-                                    type: ChallengeDetailActions.RegistrationStatusReceived,
-                                    selectedChallengeName: selectedChallenge,
-                                    registrationStatus: data.registered
-                                });
-                            } else {
-                                let detail: string;
-                                if (hasContent(response)) {
-                                    detail = await response.text();
-                                } else {
-                                    detail = 'Unknown';
-                                }
-
-                                console.error(`Error fetching registration status. Status: ${response.status}, Status Description: ${response.statusText}, Detail: ${detail}`);
-
-                                dispatch({
-                                    type: ChallengeDetailActions.ServerRequestError,
-                                    message: generateErrorMessage('registration status', response.status, response.statusText, detail)
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            dispatch({
-                                type: ChallengeDetailActions.ServerRequestError,
-                                message: error
-                            })
-                        });
+                    fetchRegistrationStatus(appState, selectedChallenge, dispatch);
                 }
 
                 // Fetch Age Groups
@@ -307,6 +329,13 @@ export const actionCreators = {
                         })
                     });
             }
+        }
+    },
+    refreshRegistrationStatus: (selectedChallenge: string): AppThunkAction<KnownAction> => (dispatch, getState) => {
+        let appState = getState();
+
+        if (appState.login?.loggedInUser) {
+            fetchRegistrationStatus(appState, selectedChallenge, dispatch);
         }
     },
     selectedCategoryChanged: (selectedCategory: Category) => ({
@@ -438,6 +467,11 @@ export const reducer: Reducer<ChallengeDetailsState> =
                 }
 
                 break;
+            case ChallengeDetailActions.FetchingRegistationStatus:
+                return {
+                    ...state,
+                    fetchingRegistrationStatusFor: (action as FetchingRegistationStatus).selectedChallengeName
+                };
             case ChallengeDetailActions.RegistrationStatusReceived:
                 const registrationStatusReceived = action as RegistrationStatusReceived;
                 if (registrationStatusReceived.selectedChallengeName === state.selectedChallengeName) {
@@ -445,7 +479,11 @@ export const reducer: Reducer<ChallengeDetailsState> =
                         ...state,
                         isAthleteRegistered: registrationStatusReceived.registrationStatus,
                         waitingForInviteCode: state.waitingForInviteCode && !registrationStatusReceived.registrationStatus,
-                        registrationError: undefined
+                        registrationError: undefined,
+                        fetchingRegistrationStatusFor:
+                            (state.fetchingRegistrationStatusFor === registrationStatusReceived.selectedChallengeName) ?
+                                undefined :
+                                state.fetchingRegistrationStatusFor,
                     };
                 }
 
@@ -482,8 +520,10 @@ export const reducer: Reducer<ChallengeDetailsState> =
             case ChallengeDetailActions.CancelJoin:
                 return { ...state, waitingForInviteCode: false, inviteCode: undefined };
             case ChallengeDetailActions.ServerRequestError:
-            case "ERROR_FETCHING_CHALLENGE_LIST":
+            case 'ERROR_FETCHING_CHALLENGE_LIST':
                 return { ...state, errorMessage: (action as HasMessage).message };
+            case 'LOGGED_IN':
+                return { ...state, isAthleteRegistered: undefined };
         }
 
         return state;

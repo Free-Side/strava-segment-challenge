@@ -30,6 +30,7 @@
         <TypeScriptCompile Include="ClientApp\src\RestHelper.ts" />
         <TypeScriptCompile Include="ClientApp\src\shared\EventHelpers.ts" />
         <TypeScriptCompile Include="ClientApp\src\shared\Modal.tsx" />
+        <TypeScriptCompile Include="ClientApp\src\shared\WithQueryParams.tsx" />
         <TypeScriptCompile Include="ClientApp\src\store\ChallengeDetails.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\ChallengeList.ts" />
         <TypeScriptCompile Include="ClientApp\src\store\Configuration.ts" />
