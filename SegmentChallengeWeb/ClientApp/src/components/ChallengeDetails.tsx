@@ -4,6 +4,7 @@ import { connect, Matching } from 'react-redux';
 import { Redirect, RouteComponentProps } from 'react-router';
 import { Link } from 'react-router-dom';
 import parse from 'html-react-parser';
+import moment from 'moment';
 
 import EffortList from './EffortList';
 import UploadChallengeGpx from './UploadChallengeGpx';
@@ -120,6 +121,13 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                         (this.props.isAthleteRegistered === true &&
                             <span className="joined-successfully">You have joined. Check back later for your efforts.</span>)}
                 </div>
+                <ul id="challenge_details">
+                    <li><span className="challenge-detail-label">Start Date/Time:</span> {moment(this.props.currentChallenge.startDate).format('MMMM Do YYYY, h:mm a')}</li>
+                    {(this.props.currentChallenge.startDate.getDate() !== this.props.currentChallenge.endDate.getDate() ||
+                        this.props.currentChallenge.startDate.getMonth() !== this.props.currentChallenge.endDate.getMonth()) ?
+                        <li><span className="challenge-detail-label">End Date/Time:</span> {moment(this.props.currentChallenge.endDate).format('MMMM Do YYYY, h:mm a')}</li> :
+                        <li><span className="challenge-detail-label">End Time:</span> {moment(this.props.currentChallenge.endDate).format('h:mm a')}</li>}
+                </ul>
                 {this.props.currentChallenge.routeMapImage &&
                 <a href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`}
                    target="_blank">

@@ -51,7 +51,7 @@ namespace SegmentChallengeWeb.Controllers {
             return new JsonResult(
                 await
                     challengeTable
-                        .OrderByDescending(c => c.StartDate)
+                        .OrderBy(c => c.StartDate)
                         .ToListAsync(cancellationToken: cancellationToken)
             );
         }

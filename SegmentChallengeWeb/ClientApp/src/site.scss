@@ -114,6 +114,29 @@ header {
   }
 }
 
+#challenge_details {
+  display: flex;
+  flex-direction: row;
+  padding-left: 0;
+
+  li {
+    list-style: '| ';
+    margin-left: 1em;
+    font-weight: bold;
+
+    .challenge-detail-label {
+      font-weight: normal;
+      font-style: italic;
+      color: #666666;
+    }
+
+    &:first-child {
+      list-style: none;
+      margin-left: 0;
+    }
+  }
+}
+
 .joined-successfully {
   color: #418241;
   font-weight: bold;

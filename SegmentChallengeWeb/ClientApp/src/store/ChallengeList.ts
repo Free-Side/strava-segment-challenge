@@ -1,6 +1,6 @@
-import {AnyAction, Reducer} from "redux";
-import {AppThunkAction} from "./index";
-import {generateErrorMessage, hasContent} from "../RestHelper"
+import { AnyAction, Reducer } from 'redux';
+import { AppThunkAction } from './index';
+import { generateErrorMessage, hasContent } from '../RestHelper'
 
 export interface Challenge {
     id: number,
@@ -15,6 +15,15 @@ export interface Challenge {
     requiresInviteCode: boolean,
     registrationLink: string,
     routeMapImage: string,
+}
+
+function toChallenge(data: any) {
+    return {
+        ...data,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
+        type: data.type as ChallengeType,
+    };
 }
 
 export enum ChallengeType {
@@ -53,9 +62,9 @@ export const actionCreators = {
                 .then(async response => {
                     if (response.ok) {
                         const data = await response.json();
-                        dispatch({ type: 'RECEIVE_CHALLENGE_LIST', challenges: data as Challenge[] });
+                        dispatch({ type: 'RECEIVE_CHALLENGE_LIST', challenges: (data as unknown[]).map(toChallenge) });
                     } else {
-                        let detail : string;
+                        let detail: string;
                         if (hasContent(response)) {
                             detail = await response.text();
                         } else {
@@ -77,7 +86,7 @@ export const actionCreators = {
                     })
                 });
 
-            dispatch({ type: 'REQUEST_CHALLENGE_LIST'});
+            dispatch({ type: 'REQUEST_CHALLENGE_LIST' });
         }
     }
 };
@@ -91,7 +100,7 @@ export const reducer: Reducer<ChallengeListState> = (state: ChallengeListState |
     switch (action.type) {
         case 'REQUEST_CHALLENGE_LIST':
             if (!state.requestPending && !state.challenges) {
-                return {...state, requestPending: true};
+                return { ...state, requestPending: true };
             } else {
                 // Ignore redundant requests
                 return state;

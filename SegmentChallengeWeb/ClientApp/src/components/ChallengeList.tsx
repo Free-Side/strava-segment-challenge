@@ -40,8 +40,8 @@ class ChallengeList extends React.PureComponent<Matching<ChallengeListProps, Cha
                 {challenges.map((challenge: ChallengeListStore.Challenge) =>
                     <tr key={challenge.name} className={(challenge.endDate > new Date()) ? 'active-challenge' : 'inactive-challenge'}>
                         <td><Link to={`/challenge/${challenge.name}`}>{challenge.displayName}</Link></td>
-                        <td title={moment(challenge.startDate).format('MMMM Do YYYY, h:mm:ss a')}>{moment(challenge.startDate).fromNow()}</td>
-                        <td title={moment(challenge.endDate).format('MMMM Do YYYY, h:mm:ss a')}>{moment(challenge.endDate).fromNow()}</td>
+                        <td title={moment(challenge.startDate).format('MMMM Do YYYY, h:mm a')}>{moment(challenge.startDate).fromNow()} ({moment(challenge.startDate).format('MMMM Do YYYY')})</td>
+                        <td title={moment(challenge.endDate).format('MMMM Do YYYY, h:mm a')}>{moment(challenge.endDate).fromNow()}</td>
                     </tr>
                 )}
                 </tbody>
