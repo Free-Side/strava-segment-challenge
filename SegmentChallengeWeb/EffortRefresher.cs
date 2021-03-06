@@ -217,7 +217,10 @@ namespace SegmentChallengeWeb {
                         a => a.Id,
                         (cr, a) => new { Registration = cr, Athlete = a })
                     .Where(ra => ra.Registration.ChallengeId == challenge.Id)
-                    .Where(ra => ra.Athlete.Gender != null && ra.Athlete.BirthDate != null)
+                    .Where(ra =>
+                        ra.Athlete.AccessToken != null &&
+                        ra.Athlete.Gender != null &&
+                        ra.Athlete.BirthDate != null)
                     .Select(ra => ra.Athlete)
                     .ToListAsync(cancellationToken);
 

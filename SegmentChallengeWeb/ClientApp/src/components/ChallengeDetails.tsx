@@ -128,10 +128,10 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                         <li><span className="challenge-detail-label">End Date/Time:</span> {moment(this.props.currentChallenge.endDate).format('MMMM Do YYYY, h:mm a')}</li> :
                         <li><span className="challenge-detail-label">End Time:</span> {moment(this.props.currentChallenge.endDate).format('h:mm a')}</li>}
                 </ul>
-                {this.props.currentChallenge.routeMapImage &&
+                {this.props.currentChallenge.hasRouteMap &&
                 <a href={`https://www.strava.com/segments/${this.props.currentChallenge?.segmentId}`}
                    target="_blank">
-                    <img src={"data:image/png;base64," + this.props.currentChallenge.routeMapImage} alt="A map of the segment route."
+                    <img src={`/api/challenges/${this.props.currentChallenge.name}/route_map`} alt="A map of the segment route."
                          className="route-map-image" />
                 </a>}
                 <p>{parse(this.props.currentChallenge.description)}</p>
@@ -149,7 +149,7 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                 </div>
                 {this.props.login?.loggedInUser?.user_data.is_admin && <UploadChallengeGpx selectedCategory={this.props.selectedCategory} />}
                 {this.props.isAthleteRegistered &&
-                this.props.currentChallenge.startDate > new Date() &&
+                this.props.currentChallenge.startDate < new Date() &&
                 <UploadEffortGpx selectedCategory={this.props.selectedCategory} />}
 
                 <Modal open={this.props.waitingForInviteCode === true} closeModal={() => this.props.cancelJoin()}>

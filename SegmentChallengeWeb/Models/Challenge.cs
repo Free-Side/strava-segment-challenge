@@ -19,6 +19,8 @@ namespace SegmentChallengeWeb.Models {
 
         public Boolean UseMovingTime { get; set; }
 
+        // There's no reason to send this to the client.
+        [JsonIgnore]
         public String GpxData { get; set; }
 
         // Don't expose publicly
@@ -27,7 +29,12 @@ namespace SegmentChallengeWeb.Models {
 
         public String RegistrationLink { get; set; }
 
+        // Fetch this in a more cache-able way
+        [JsonIgnore]
         public Byte[] RouteMapImage { get; set; }
+
+        [NotMapped]
+        public Boolean HasRouteMap => this.RouteMapImage != null;
 
         [NotMapped]
         public Boolean RequiresInviteCode => !String.IsNullOrEmpty(this.InviteCode);

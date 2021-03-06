@@ -3,18 +3,18 @@ import { AppThunkAction } from './index';
 import { generateErrorMessage, hasContent } from '../RestHelper'
 
 export interface Challenge {
-    id: number,
-    name: string,
-    displayName: string,
-    description: string,
-    segmentId: string,
-    startDate: Date,
-    endDate: Date,
-    type: ChallengeType,
-    useMovingTime: boolean,
-    requiresInviteCode: boolean,
-    registrationLink: string,
-    routeMapImage: string,
+    id: number;
+    name: string;
+    displayName: string;
+    description: string;
+    segmentId: string;
+    startDate: Date;
+    endDate: Date;
+    type: ChallengeType;
+    useMovingTime: boolean;
+    requiresInviteCode: boolean;
+    registrationLink: string;
+    hasRouteMap: boolean;
 }
 
 function toChallenge(data: any) {
@@ -32,9 +32,9 @@ export enum ChallengeType {
 }
 
 export interface ChallengeListState {
-    challenges?: Challenge[],
-    requestPending: boolean,
-    requestError?: string
+    challenges?: Challenge[];
+    requestPending: boolean;
+    requestError?: string;
 }
 
 export interface RequestChallengeListAction {

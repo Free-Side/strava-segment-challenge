@@ -56,6 +56,35 @@ namespace SegmentChallengeWeb.Controllers {
             );
         }
 
+        [HttpGet("{name}/route_map")]
+        public async Task<IActionResult> GetRouteMap(
+            String name,
+            CancellationToken cancellationToken) {
+
+            await using var connection = this.dbConnectionFactory();
+            await connection.OpenAsync(cancellationToken);
+
+            await using var dbContext = new SegmentChallengeDbContext(connection);
+
+            var challengeTable = dbContext.Set<Challenge>();
+
+            var challenge = await challengeTable.SingleOrDefaultAsync(
+                c => c.Name == name,
+                cancellationToken
+            );
+
+            if (challenge == null || !challenge.HasRouteMap) {
+                return NotFound();
+            }
+
+            // TODO check and set ETAG
+
+            return new FileContentResult(
+                challenge.RouteMapImage,
+                "image/png"
+            );
+        }
+
         [HttpGet("{name}/age_groups")]
         public async Task<IActionResult> GetAgeGroups(
             String name,
@@ -715,7 +744,7 @@ namespace SegmentChallengeWeb.Controllers {
 
                 await dbContext.SaveChangesAsync(cancellationToken);
 
-                return new JsonResult(new {
+                return Ok(new {
                     Effort = effort,
                     Start = start,
                     End = end,
@@ -725,9 +754,7 @@ namespace SegmentChallengeWeb.Controllers {
                 });
             } else {
                 return BadRequest("The uploaded ride does not match the segment data for this challenge.");
-
             }
-
         }
 
         private const Double R = 6.371e6; // earth's radius in meters

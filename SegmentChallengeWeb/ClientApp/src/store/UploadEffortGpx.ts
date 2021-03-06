@@ -77,9 +77,10 @@ export const actionCreators = {
             let formData = new FormData();
             formData.append('gpxFile', appState.uploadEffortGpx.selectedFile);
 
-            console.log(`upload gpx for: ${appState.uploadEffortGpx.athleteId}`)
+            let athleteId = appState.uploadEffortGpx.athleteId ?? appState.login?.loggedInUser?.sub;
+            console.log(`upload gpx for: ${athleteId}`)
             fetch(
-                `${appState.config.apiBaseUrl}api/challenges/${appState.challengeDetails.selectedChallengeName}/upload_activity?athlete=${appState.uploadEffortGpx.athleteId}`,
+                `${appState.config.apiBaseUrl}api/challenges/${appState.challengeDetails.selectedChallengeName}/upload_activity?athlete=${athleteId}`,
                 {method: 'POST', credentials: 'same-origin', body: formData})
                 .then(async response => {
                     if (response.ok) {
