@@ -85,6 +85,15 @@ namespace SegmentChallengeWeb.Controllers {
                 // Odd
                 return NotFound();
             } else {
+                var emailInUse =
+                    await athleteTable.Where(a => a.Email == profile.Email).Select(_ => true).SingleOrDefaultAsync(cancellationToken);
+                if (emailInUse) {
+                    return BadRequest(new ProblemDetails {
+                        Detail = "The email address you entered is already in use by another user.",
+                        Type = ErrorTypes.EmailAddressInUse
+                    });
+                }
+
                 athlete.BirthDate = profile.BirthDate;
                 athlete.Gender = profile.Gender;
                 athlete.Email = profile.Email;

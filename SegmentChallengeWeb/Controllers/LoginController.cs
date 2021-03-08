@@ -68,7 +68,8 @@ namespace SegmentChallengeWeb.Controllers {
 
             if (existingAthlete != null) {
                 return BadRequest(new ProblemDetails {
-                    Detail = "The specified email address is already registered."
+                    Detail = "The email address you entered is already in use by another user.",
+                    Type = ErrorTypes.EmailAddressInUse
                 });
             }
 
