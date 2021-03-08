@@ -11,6 +11,8 @@ using SegmentChallengeWeb.Persistence;
 
 namespace SegmentChallengeWeb {
     public class AutoRefreshService : IHostedService {
+        public static Boolean RefreshEnabled { get; set; } = true;
+
         private readonly Func<DbConnection> dbConnectionFactory;
         private readonly BackgroundTaskService taskService;
         private readonly ILogger<AutoRefreshService> logger;
@@ -41,8 +43,12 @@ namespace SegmentChallengeWeb {
 
         private void RefreshAllChallenges() {
             try {
-                var startRefreshTask = this.RefreshAllChallengesAsync(CancellationToken.None);
-                startRefreshTask.ConfigureAwait(continueOnCapturedContext: false).GetAwaiter().GetResult();
+                if (RefreshEnabled) {
+                    var startRefreshTask = this.RefreshAllChallengesAsync(CancellationToken.None);
+                    startRefreshTask.ConfigureAwait(continueOnCapturedContext: false).GetAwaiter().GetResult();
+                } else {
+                    this.logger.LogWarning("Auto-Refresh is currently disabled.");
+                }
             } catch (Exception err) {
                 this.logger.LogError(-1, err, err.Message);
             }

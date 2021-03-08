@@ -447,6 +447,29 @@ namespace SegmentChallengeWeb.Controllers {
             return new JsonResult(new { updateId });
         }
 
+        [HttpPost("toggle_auto_refresh")]
+        public IActionResult ToggleAutoRefresh(
+            [FromQuery] Boolean? enabled,
+            CancellationToken cancellationToken) {
+            if (!(User is JwtCookiePrincipal identity)) {
+                return Unauthorized();
+            } else if (!IsAdmin(identity)) {
+                return Forbid();
+            }
+
+            Boolean result;
+            if (enabled.HasValue) {
+                result = AutoRefreshService.RefreshEnabled = enabled.Value;
+            } else {
+                result = AutoRefreshService.RefreshEnabled = !AutoRefreshService.RefreshEnabled;
+            }
+
+            return Ok(new {
+                Status = result,
+                Message = $"Segment Auto-Refresh {(result ? "enabled" : "disabled")}"
+            });
+        }
+
         [HttpPost("{name}/refresh")]
         public async Task<IActionResult> RefreshEfforts(
             String name,
@@ -472,6 +495,13 @@ namespace SegmentChallengeWeb.Controllers {
                 return NotFound();
             }
 
+            if (challenge.StartDate.AddDays(-1) > DateTime.UtcNow) {
+                return Ok(new {
+                    updateId = -1,
+                    message = "This challenge has not started yet."
+                });
+            }
+
             var update = await updatesTable.AddAsync(
                 new Update {
                     AthleteId = identity.UserId,
@@ -492,7 +522,14 @@ namespace SegmentChallengeWeb.Controllers {
             return new JsonResult(new { updateId });
         }
 
-        private const Double Tolerance = 20.0;
+        // Matching points must be within 20 meters
+        private const Double DefaultTolerance = 20.0;
+
+        // Allow a rider to skip a maximum of 10% of the route if they go off course.
+        private const Double DefaultMaxSkip = 0.1;
+
+        private const Int32 MaximumInteractions = 1000000;
+
         private static readonly XNamespace svgns = "http://www.w3.org/2000/svg";
 
         [HttpPost("{name}/upload_activity")]
@@ -500,6 +537,10 @@ namespace SegmentChallengeWeb.Controllers {
             String name,
             [FromQuery] Int64? athlete,
             [FromQuery] Boolean debug,
+            [FromQuery] Boolean image,
+            [FromQuery(Name = "tolerance")] Double? toleranceOverride,
+            [FromQuery(Name = "max-skip")] Double? maxSkipOverride,
+            [FromQuery(Name = "moving-time")] Boolean forceUseMovingTime,
             [FromForm] IFormFile gpxFile,
             CancellationToken cancellationToken) {
 
@@ -535,6 +576,9 @@ namespace SegmentChallengeWeb.Controllers {
                 return BadRequest("This challenge does not have segment GPX data available.");
             }
 
+            var tolerance = toleranceOverride ?? DefaultTolerance;
+            var maximumSkip = maxSkipOverride ?? DefaultMaxSkip;
+
             var athleteId = athlete ?? identity.UserId;
 
             var gpxSerializer = new XmlSerializer(typeof(GpxData));
@@ -566,20 +610,56 @@ namespace SegmentChallengeWeb.Controllers {
             var skipping = false;
             var matchCount = 1;
 
+            var iterations = 0;
+
             String renderPoint(TrackPoint point) {
                 return $"{(point.Longitude - start.Longitude) * 1000:f3},{(point.Latitude - start.Latitude) * -1000:f3}";
             }
 
-            foreach (var routePoint in route.Track.Segments.SelectMany(seg => seg.Points)) {
-                if (skippedPoints > 400) {
-                    // Give up
-                    break;
+            var routePoints = route.Track.Segments.SelectMany(seg => seg.Points).ToArray();
+            var startPoint = routePoints[0];
+            Console.Error.WriteLine($"Total route points: {routePoints.Length}");
+            for (var routePointIx = 0; routePointIx < routePoints.Length && iterations < MaximumInteractions; routePointIx++) {
+                iterations++;
+                var routePoint = routePoints[routePointIx];
+
+                if (skipping && (skippedPoints > routePoints.Length * maximumSkip || routePointIx == routePoints.Length - 1)) {
+                    // We've skipped 10% of the course, or we're in danger of "skipping" off the end of the course
+
+                    // The current point is obviously no good, try advancing forward 1 point
+                    if (currentPointIx + 1 < ride.Track.Segments[currentSegmentIx].Points.Count) {
+                        currentPointIx++;
+                    } else if (currentSegmentIx + 1 < ride.Track.Segments.Count) {
+                        currentSegmentIx++;
+                        currentPointIx = 0;
+                    } else {
+                        break;
+                    }
+
+                    Console.Error.WriteLine($"Resetting to start point search at position {currentSegmentIx}:{currentPointIx}");
+                    // try looking for the start point again (maybe the rider double-crossed the start)
+                    start = null;
+                    routePath.Clear();
+                    skippedPath.Clear();
+                    ridePath.Clear();
+                    matchPath.Clear();
+                    routePointIx = 0;
+                    routePoint = routePoints[routePointIx];
+                    skippedPoints = 0;
+                    skippedPointList.Clear();
+                    startDistanceList.Clear();
+                    matchDistanceList.Clear();
+                    matchIxList.Clear();
+                    gapList.Clear();
+                    gaps = TimeSpan.Zero;
+                    matchCount = 1;
                 }
 
                 if (start == null) {
                     // Scan forward until we find a point within 20 meters of the start point
-                    while (currentSegmentIx < ride.Track.Segments.Count && currentPointIx < ride.Track.Segments[currentSegmentIx].Points.Count &&
-                        Distance(routePoint, ride.Track.Segments[currentSegmentIx].Points[currentPointIx]) > Tolerance) {
+                    while (currentSegmentIx < ride.Track.Segments.Count &&
+                        currentPointIx < ride.Track.Segments[currentSegmentIx].Points.Count &&
+                        Distance(routePoint, ride.Track.Segments[currentSegmentIx].Points[currentPointIx]) > tolerance) {
 
                         startDistanceList.Add((Int32)Distance(routePoint, ride.Track.Segments[currentSegmentIx].Points[currentPointIx]));
                         if (currentPointIx + 1 < ride.Track.Segments[currentSegmentIx].Points.Count) {
@@ -597,53 +677,101 @@ namespace SegmentChallengeWeb.Controllers {
                         routePath.Append($"M {renderPoint(routePoint)} L");
                         ridePath.Append($"M {renderPoint(start)} L");
                         matchPath.Append($"M {renderPoint(routePoint)} L {renderPoint(start)}");
+
+                        Console.Error.WriteLine($"Rider reached the start point at {currentSegmentIx}:{currentPointIx}");
                     } else {
                         // Unable to find start, give up
-                        Console.WriteLine($"WTF, checked {startDistanceList.Count} points with no start.");
+                        Console.Error.WriteLine($"FAIL: checked {startDistanceList.Count} points with no start.");
                         break;
                     }
                 } else {
                     // Scan forward until we find the next point, keeping track of gaps
-                    var nextSegmentIx = currentSegmentIx;
-                    var nextPointIx = currentPointIx;
-                    var nextPoint = ride.Track.Segments[nextSegmentIx].Points[nextPointIx];
+                    Int32 nextSegmentIx;
+                    Int32 nextPointIx;
+                    if (currentPointIx + 1 < ride.Track.Segments[currentSegmentIx].Points.Count) {
+                        nextPointIx = currentPointIx + 1;
+                        nextSegmentIx = currentSegmentIx;
+                    } else if (currentSegmentIx + 1 < ride.Track.Segments.Count) {
+                        nextSegmentIx = currentSegmentIx + 1;
+                        // We assume that each segment has at least one point
+                        nextPointIx = 0;
+                    } else {
+                        // End of the ride
+                        nextSegmentIx = -1;
+                        nextPointIx = -1;
+                        Console.Error.WriteLine($"{routePointIx} - Reached the end of the ride!");
+                    }
 
                     var gap = TimeSpan.Zero;
-                    while (Distance(routePoint, nextPoint) > Tolerance && Distance(routePoint, nextPoint) < 2000) {
-                        if (nextPointIx + 1 < ride.Track.Segments[nextSegmentIx].Points.Count) {
-                            nextPointIx++;
-                        } else if (nextSegmentIx + 1 < ride.Track.Segments.Count) {
-                            nextSegmentIx++;
-                            nextPointIx = 0;
-                        } else {
-                            break;
-                        }
-
-                        var previousPoint = nextPoint;
+                    TrackPoint nextPoint = null;
+                    if (nextPointIx >= 0) {
                         nextPoint = ride.Track.Segments[nextSegmentIx].Points[nextPointIx];
-                        var interval = nextPoint.Time.Subtract(previousPoint.Time).TotalSeconds;
-                        if (interval > 0) {
-                            var speed = Distance(previousPoint, nextPoint) / interval;
-                            // If travelling at less that 0.5 mph don't count this time interval
-                            // if (speed < 0.22352) {
-                            // If travelling at less that 1 mph don't count this time interval
-                            if (speed < 0.44704) {
-                                gap = gap.Add(TimeSpan.FromSeconds(interval));
+
+                        while (Distance(routePoint, nextPoint) > tolerance && Distance(routePoint, nextPoint) < tolerance * 10 && iterations < MaximumInteractions) {
+                            iterations++;
+                            if (skipping && Distance(startPoint, nextPoint) <= tolerance) {
+                                // The track went off course and returned to the start!
+                                Console.Error.WriteLine($"{routePointIx} - Rider returned to the start at position {nextSegmentIx}:{nextPointIx}");
+                                routePath.Clear();
+                                skippedPath.Clear();
+                                ridePath.Clear();
+                                matchPath.Clear();
+                                start = nextPoint;
+                                routePath.Append($"M {renderPoint(routePoint)} L");
+                                ridePath.Append($"M {renderPoint(start)} L");
+                                matchPath.Append($"M {renderPoint(routePoint)} L {renderPoint(start)}");
+                                routePointIx = 0;
+                                routePoint = startPoint;
+                                skipping = false;
+                                // Don't dock the user for points skipped before now;
+                                skippedPoints = 0;
+                                skippedPointList.Clear();
+                                matchDistanceList.Clear();
+                                matchIxList.Clear();
+                                gapList.Clear();
+                                gaps = gap = TimeSpan.Zero;
+                                matchCount = 1;
+
+                                break;
+                            }
+
+                            if (nextPointIx + 1 < ride.Track.Segments[nextSegmentIx].Points.Count) {
+                                nextPointIx++;
+                            } else if (nextSegmentIx + 1 < ride.Track.Segments.Count) {
+                                nextSegmentIx++;
+                                nextPointIx = 0;
+                            } else {
+                                break;
+                            }
+
+                            var previousPoint = nextPoint;
+                            nextPoint = ride.Track.Segments[nextSegmentIx].Points[nextPointIx];
+                            ridePath.Append($" {renderPoint(nextPoint)}");
+                            var interval = nextPoint.Time.Subtract(previousPoint.Time).TotalSeconds;
+                            if (interval > 0) {
+                                var speed = Distance(previousPoint, nextPoint) / interval;
+                                // If travelling at less that 0.5 mph don't count this time interval
+                                // if (speed < 0.22352)
+                                // If travelling at less that 1 mph don't count this time interval
+                                if (speed < 0.44704) {
+                                    gap = gap.Add(TimeSpan.FromSeconds(interval));
+                                }
                             }
                         }
                     }
 
-                    if (Distance(routePoint, nextPoint) <= Tolerance) {
+                    if (nextPoint != null && Distance(routePoint, nextPoint) <= tolerance) {
                         match = true;
                         matchDistanceList.Add((Int32)Distance(routePoint, nextPoint));
                         matchIxList.Add(nextPointIx);
                         if (gap > TimeSpan.Zero) {
                             gapList.Add(gap.TotalSeconds);
+                            Console.Error.WriteLine($"Adding a gap of {gap.TotalSeconds:f0} seconds");
                             gaps = gaps.Add(gap);
                         }
 
-                        ridePath.Append($" {renderPoint(nextPoint)}");
                         if (skipping) {
+                            Console.Error.WriteLine($"{routePointIx} - Switched to matching mode at ride point {nextSegmentIx}:{nextPointIx}");
                             skippedPath.Append($" {renderPoint(routePoint)}");
                             routePath.Append($" M {renderPoint(routePoint)} L");
                             skipping = false;
@@ -651,7 +779,7 @@ namespace SegmentChallengeWeb.Controllers {
                             routePath.Append($" {renderPoint(routePoint)}");
                         }
 
-                        if (matchCount % 10 == 0) {
+                        if (matchCount % 10 == 1) {
                             matchPath.Append($"M {renderPoint(routePoint)} L {renderPoint(nextPoint)}");
                         }
 
@@ -659,7 +787,7 @@ namespace SegmentChallengeWeb.Controllers {
                         currentSegmentIx = nextSegmentIx;
                         matchCount++;
                     } else {
-                        // If distance goes over 200 meters, try skipping this track point.
+                        // If distance goes over Tolerance * 10 meters, try skipping this track point.
                         match = false;
                         skippedPointList.Add(routePoint);
                         skippedPoints++;
@@ -667,8 +795,10 @@ namespace SegmentChallengeWeb.Controllers {
                         if (skipping) {
                             // continue skip mode
                             skippedPath.Append($" {renderPoint(routePoint)}");
+                            Console.Error.WriteLine($"{routePointIx} - Skipped");
                         } else {
                             // Switch to skip mode
+                            Console.Error.WriteLine($"{routePointIx} - Switched to skip mode at ride point {currentSegmentIx}:{currentPointIx}");
                             routePath.Append($" {renderPoint(routePoint)}");
                             skippedPath.Append($" M {renderPoint(routePoint)} L");
                             skipping = true;
@@ -677,7 +807,11 @@ namespace SegmentChallengeWeb.Controllers {
                 }
             }
 
-            if (debug) {
+            if (iterations >= MaximumInteractions) {
+                Console.Error.WriteLine("That looked like an infinite loop.");
+            }
+
+            if (image) {
                 return new ContentResult {
                     Content =
                         new XDocument(
@@ -701,7 +835,7 @@ namespace SegmentChallengeWeb.Controllers {
                     ContentType = "image/svg+xml",
                     StatusCode = match ? 200 : 400
                 };
-            } else if (match) {
+            } else if (match && start != null) {
                 end = ride.Track.Segments[currentSegmentIx].Points[currentPointIx];
                 var elapsed = end.Time.Subtract(start.Time);
                 var moving = elapsed.Subtract(gaps);
@@ -713,9 +847,10 @@ namespace SegmentChallengeWeb.Controllers {
                         e => e.SegmentId == challenge.SegmentId && e.AthleteId == athleteId,
                         cancellationToken);
                 if (effort != null) {
+                    // Update existing.
                     effort.StartDate = start.Time;
                     effort.ElapsedTime =
-                        challenge.UseMovingTime ?
+                        challenge.UseMovingTime || forceUseMovingTime ?
                             (Int32)moving.TotalSeconds :
                             (Int32)elapsed.TotalSeconds;
                 } else {
@@ -742,7 +877,9 @@ namespace SegmentChallengeWeb.Controllers {
                     effort = newEffort.Entity;
                 }
 
-                await dbContext.SaveChangesAsync(cancellationToken);
+                if (!debug && !image) {
+                    await dbContext.SaveChangesAsync(cancellationToken);
+                }
 
                 return Ok(new {
                     Effort = effort,

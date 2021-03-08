@@ -23,5 +23,7 @@ namespace SegmentChallengeWeb.Configuration {
         public String SecretKey { get; set; }
         public String SupportContact { get; set; }
         public Int64[] Administrators { get; set; }
+
+        public Boolean AutoRefresh { get; set; }
     }
 }

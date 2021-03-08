@@ -470,7 +470,8 @@ namespace SegmentChallengeWeb {
 
             var activeChallenges = await
                 challengeTable
-                    .Where(c => c.EndDate > DateTime.UtcNow)
+                    // Keep looking for new activities for up to 3 days after the end of the challenge
+                    .Where(c => c.EndDate.AddDays(3) > DateTime.UtcNow && c.StartDate < DateTime.UtcNow)
                     .ToListAsync(cancellationToken);
 
             foreach (var challenge in activeChallenges) {
@@ -492,7 +493,7 @@ namespace SegmentChallengeWeb {
 
                 await dbContext.SaveChangesAsync(cancellationToken);
 
-                logger.LogDebug("Refreshing all efforts for challenge {ChallengeId} (Update {UpdateId})", challenge.Id, update.Entity.Id);
+                this.logger.LogDebug("Refreshing all efforts for challenge {ChallengeId} (Update {UpdateId})", challenge.Id, update.Entity.Id);
                 await this.RefreshEffortsInternal(dbContext, challenge, update.Entity, cancellationToken);
             }
 

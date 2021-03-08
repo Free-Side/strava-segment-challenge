@@ -88,8 +88,10 @@ namespace SegmentChallengeWeb {
 
             services.AddScoped<EffortRefresher>();
 
-            services.AddSingleton<AutoRefreshService>();
-            services.AddHostedService<AutoRefreshService>();
+            if (siteConfiguration.AutoRefresh) {
+                services.AddSingleton<AutoRefreshService>();
+                services.AddHostedService<AutoRefreshService>();
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
