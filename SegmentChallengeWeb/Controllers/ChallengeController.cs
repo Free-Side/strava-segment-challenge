@@ -612,12 +612,12 @@ namespace SegmentChallengeWeb.Controllers {
 
             var iterations = 0;
 
-            String renderPoint(TrackPoint point) {
-                return $"{(point.Longitude - start.Longitude) * 1000:f3},{(point.Latitude - start.Latitude) * -1000:f3}";
-            }
-
             var routePoints = route.Track.Segments.SelectMany(seg => seg.Points).ToArray();
             var startPoint = routePoints[0];
+            String renderPoint(TrackPoint point) {
+                return $"{(point.Longitude - startPoint.Longitude) * 1000:f3},{(point.Latitude - startPoint.Latitude) * -1000:f3}";
+            }
+
             Console.Error.WriteLine($"Total route points: {routePoints.Length}");
             for (var routePointIx = 0; routePointIx < routePoints.Length && iterations < MaximumInteractions; routePointIx++) {
                 iterations++;
@@ -639,10 +639,9 @@ namespace SegmentChallengeWeb.Controllers {
                     Console.Error.WriteLine($"Resetting to start point search at position {currentSegmentIx}:{currentPointIx}");
                     // try looking for the start point again (maybe the rider double-crossed the start)
                     start = null;
-                    routePath.Clear();
-                    skippedPath.Clear();
-                    ridePath.Clear();
+                    // skippedPath.Clear();
                     matchPath.Clear();
+                    routePath.Append($" M {renderPoint(startPoint)} L");
                     routePointIx = 0;
                     routePoint = routePoints[routePointIx];
                     skippedPoints = 0;
@@ -661,7 +660,9 @@ namespace SegmentChallengeWeb.Controllers {
                         currentPointIx < ride.Track.Segments[currentSegmentIx].Points.Count &&
                         Distance(routePoint, ride.Track.Segments[currentSegmentIx].Points[currentPointIx]) > tolerance) {
 
-                        startDistanceList.Add((Int32)Distance(routePoint, ride.Track.Segments[currentSegmentIx].Points[currentPointIx]));
+                        var currentPoint = ride.Track.Segments[currentSegmentIx].Points[currentPointIx];
+                        ridePath.Append(ridePath.Length == 0 ? $"M {renderPoint(currentPoint)} L" : $" {renderPoint(currentPoint)}");
+                        startDistanceList.Add((Int32)Distance(routePoint, currentPoint));
                         if (currentPointIx + 1 < ride.Track.Segments[currentSegmentIx].Points.Count) {
                             currentPointIx++;
                         } else {
@@ -674,8 +675,8 @@ namespace SegmentChallengeWeb.Controllers {
                         match = true;
                         start = ride.Track.Segments[currentSegmentIx].Points[currentPointIx];
 
+                        ridePath.Append(ridePath.Length == 0 ? $"M {renderPoint(start)} L" : $" {renderPoint(start)}");
                         routePath.Append($"M {renderPoint(routePoint)} L");
-                        ridePath.Append($"M {renderPoint(start)} L");
                         matchPath.Append($"M {renderPoint(routePoint)} L {renderPoint(start)}");
 
                         Console.Error.WriteLine($"Rider reached the start point at {currentSegmentIx}:{currentPointIx}");
@@ -707,19 +708,18 @@ namespace SegmentChallengeWeb.Controllers {
                     if (nextPointIx >= 0) {
                         nextPoint = ride.Track.Segments[nextSegmentIx].Points[nextPointIx];
 
-                        while (Distance(routePoint, nextPoint) > tolerance && Distance(routePoint, nextPoint) < tolerance * 10 && iterations < MaximumInteractions) {
+                        while (Distance(routePoint, nextPoint) > tolerance && Distance(routePoint, nextPoint) < tolerance * 100 && iterations < MaximumInteractions) {
                             iterations++;
                             if (skipping && Distance(startPoint, nextPoint) <= tolerance) {
                                 // The track went off course and returned to the start!
                                 Console.Error.WriteLine($"{routePointIx} - Rider returned to the start at position {nextSegmentIx}:{nextPointIx}");
-                                routePath.Clear();
                                 skippedPath.Clear();
-                                ridePath.Clear();
+                                // ridePath.Clear();
                                 matchPath.Clear();
                                 start = nextPoint;
-                                routePath.Append($"M {renderPoint(routePoint)} L");
-                                ridePath.Append($"M {renderPoint(start)} L");
+                                routePath.Append($" M {renderPoint(startPoint)} L");
                                 matchPath.Append($"M {renderPoint(routePoint)} L {renderPoint(start)}");
+                                ridePath.Append($" {renderPoint(nextPoint)}");
                                 routePointIx = 0;
                                 routePoint = startPoint;
                                 skipping = false;

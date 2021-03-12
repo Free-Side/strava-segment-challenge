@@ -36,7 +36,8 @@ type ChallengeDetailsProps =
     IQueryParamsProps;
 
 type ChallengeDetailsState = {
-    bestEffort?: number
+    bestEffort?: number,
+    byCategory?: boolean
 };
 
 function relativeUrl(location: Location) {
@@ -136,9 +137,17 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                 </a>}
                 <p>{parse(this.props.currentChallenge.description)}</p>
                 <div className="main-table-container">
-                    <h3>{this.props.selectedCategory.description}</h3>
+                    <h3>
+                        {!this.state.byCategory ?
+                            <span className="selected-results-display">By Time</span> :
+                            <a onClick={() => this.displayResultsByTime()} className="alternate-results-display clickable">By Time</a>}
+                        <span> | </span>
+                        {this.state.byCategory ?
+                            <span className="selected-results-display">By Category</span> :
+                            <a onClick={() => this.displayResultsByCategory()} className="alternate-results-display clickable">By Category</a>}
+                    </h3>
                     <div className="flex-row row">
-                        <EffortList />
+                        <EffortList byCategory={!!this.state.byCategory} />
                         {/*<div className="side-panel">*/}
                         {/*    <CategorySelector />*/}
                         {/*</div>*/}
@@ -187,6 +196,14 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                 </Modal>
             </div>
         );
+    }
+
+    private displayResultsByCategory() {
+        this.setState({ byCategory: true });
+    }
+
+    private displayResultsByTime() {
+        this.setState({ byCategory: false });
     }
 
     private static renderLoadingIndicator() {

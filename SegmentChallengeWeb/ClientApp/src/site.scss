@@ -11,16 +11,16 @@ body {
   overflow: auto;
 }
 
+h1, h2, h3, h4, h5 {
+  font-family: 'Sedgwick Ave', sans-serif;
+
+  a {
+    text-decoration: none;
+  }
+}
+
 div#root {
   font-family: 'Verdana', sans-serif;
-
-  h1, h2, h3, h4, h5 {
-    font-family: 'Sedgwick Ave', sans-serif;
-
-    a {
-      text-decoration: none;
-    }
-  }
 
   height: 100%;
   display: flex;
@@ -232,15 +232,24 @@ a.strava-login {
   flex-direction: column;
 }
 
+.selected-results-display {
+  font-weight: bold;
+}
+
+a.alternate-results-display {
+  color: gray;
+  text-decoration: underline;
+}
+
 .main-table {
   border-collapse: collapse;
 
-  thead td {
+  thead th, tr.table-header-row th {
     background-color: lightgray;
     font-weight: bold;
   }
 
-  td {
+  td, th {
     border: 1px solid gray;
     padding: 8px;
   }
@@ -393,6 +402,10 @@ footer {
 
 span.material-icons {
   vertical-align: text-bottom;
+}
+
+.clickable {
+  cursor: pointer;
 }
 
 .error {
