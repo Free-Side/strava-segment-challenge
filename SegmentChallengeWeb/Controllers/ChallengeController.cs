@@ -473,6 +473,7 @@ namespace SegmentChallengeWeb.Controllers {
         [HttpPost("{name}/refresh")]
         public async Task<IActionResult> RefreshEfforts(
             String name,
+            [FromQuery] Int64? athlete,
             CancellationToken cancellationToken) {
 
             if (!(User is JwtCookiePrincipal identity)) {
@@ -502,9 +503,11 @@ namespace SegmentChallengeWeb.Controllers {
                 });
             }
 
+            var athleteId = athlete ?? identity.UserId;
+
             var update = await updatesTable.AddAsync(
                 new Update {
-                    AthleteId = identity.UserId,
+                    AthleteId = athleteId,
                     ChallengeId = challenge.Id
                 },
                 cancellationToken
@@ -516,7 +519,7 @@ namespace SegmentChallengeWeb.Controllers {
 
             this.taskService.QueueTask<EffortRefresher>(
                 (service, taskCancellationToken) =>
-                    service.RefreshAthleteEfforts(updateId, name, identity.UserId, taskCancellationToken)
+                    service.RefreshAthleteEfforts(updateId, name, athleteId, taskCancellationToken)
             );
 
             return new JsonResult(new { updateId });

@@ -26,19 +26,19 @@ namespace SegmentChallengeWeb.Controllers {
     public class StravaConnectController : ControllerBase {
         private static readonly Random rand = new Random();
 
-        private readonly IOptions<SegmentChallengeConfiguration> challengeConfiguration;
+        private readonly IOptions<SegmentChallengeConfiguration> siteConfiguration;
         private readonly IOptions<StravaConfiguration> stravaConfiguration;
         private readonly Func<DbConnection> dbConnectionFactory;
         private readonly StravaApiHelper apiHelper;
         private readonly ILogger<StravaConnectController> logger;
 
         public StravaConnectController(
-            IOptions<SegmentChallengeConfiguration> challengeConfiguration,
+            IOptions<SegmentChallengeConfiguration> siteConfiguration,
             IOptions<StravaConfiguration> stravaConfiguration,
             Func<DbConnection> dbConnectionFactory,
             StravaApiHelper apiHelper,
             ILogger<StravaConnectController> logger) {
-            this.challengeConfiguration = challengeConfiguration;
+            this.siteConfiguration = siteConfiguration;
             this.stravaConfiguration = stravaConfiguration;
             this.dbConnectionFactory = dbConnectionFactory;
             this.apiHelper = apiHelper;
@@ -160,10 +160,10 @@ namespace SegmentChallengeWeb.Controllers {
                 Response.Cookies.Append(
                     "id_token",
                     CreateAthleteJwt(
-                        this.challengeConfiguration.Value,
+                        this.siteConfiguration.Value,
                         existingAthlete ?? newAthlete?.Entity),
                     new CookieOptions {
-                        Expires = DateTime.UtcNow.AddDays(this.challengeConfiguration.Value.TokenExpiration)
+                        Expires = DateTime.UtcNow.AddDays(this.siteConfiguration.Value.TokenExpiration)
                     }
                 );
 
@@ -177,7 +177,7 @@ namespace SegmentChallengeWeb.Controllers {
                 );
 
                 return this.Problem(
-                    $"An unexpected error occurred. Please contact {this.challengeConfiguration.Value.SupportContact}");
+                    $"An unexpected error occurred. Please contact {this.siteConfiguration.Value.SupportContact}");
             }
         }
 
@@ -215,7 +215,7 @@ namespace SegmentChallengeWeb.Controllers {
 
         private Uri BuildAuthenticationRedirectUri(Int32 state, String returnUrl = null) {
             var baseUrl =
-                $"{this.challengeConfiguration.Value.BaseUrl}{this.challengeConfiguration.Value.CallbackUrlPrefix}/api/connect/authorize";
+                $"{this.siteConfiguration.Value.BaseUrl}{this.siteConfiguration.Value.CallbackUrlPrefix}/api/connect/authorize";
 
             var redirectUri =
                 String.IsNullOrEmpty(returnUrl) ?

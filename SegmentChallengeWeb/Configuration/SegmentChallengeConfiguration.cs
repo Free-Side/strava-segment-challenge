@@ -25,5 +25,10 @@ namespace SegmentChallengeWeb.Configuration {
         public Int64[] Administrators { get; set; }
 
         public Boolean AutoRefresh { get; set; }
+
+        /// <summary>
+        /// The interval between effort refreshes in minutes.
+        /// </summary>
+        public Int32 RefreshInterval { get; set; } = 30;
     }
 }

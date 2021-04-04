@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using SegmentChallengeWeb.Configuration;
 using SegmentChallengeWeb.Models;
 using SegmentChallengeWeb.Persistence;
 
@@ -15,24 +17,31 @@ namespace SegmentChallengeWeb {
 
         private readonly Func<DbConnection> dbConnectionFactory;
         private readonly BackgroundTaskService taskService;
+        private readonly IOptions<SegmentChallengeConfiguration> siteConfiguration;
         private readonly ILogger<AutoRefreshService> logger;
         private Timer autoRefreshTimer;
 
         public AutoRefreshService(
             Func<DbConnection> dbConnectionFactory,
             BackgroundTaskService taskService,
+            IOptions<SegmentChallengeConfiguration> siteConfiguration,
             ILogger<AutoRefreshService> logger) {
 
             this.dbConnectionFactory = dbConnectionFactory;
             this.taskService = taskService;
+            this.siteConfiguration = siteConfiguration;
             this.logger = logger;
         }
 
         public Task StartAsync(CancellationToken cancellationToken) {
             this.logger.LogDebug("AutoRefreshService started!");
-            // TODO: Configuration
             this.autoRefreshTimer =
-                new Timer(_ => this.RefreshAllChallenges(), null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30));
+                new Timer(
+                    _ => this.RefreshAllChallenges(),
+                    null,
+                    TimeSpan.FromMinutes(5),
+                    TimeSpan.FromMinutes(this.siteConfiguration.Value.RefreshInterval)
+                );
             return Task.CompletedTask;
         }
 

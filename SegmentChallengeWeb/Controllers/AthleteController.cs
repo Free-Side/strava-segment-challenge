@@ -15,16 +15,13 @@ namespace SegmentChallengeWeb.Controllers {
     [Route("api/athletes")]
     public class AthleteController : ControllerBase {
         private readonly IOptions<SegmentChallengeConfiguration> siteConfiguration;
-        private readonly IOptions<SegmentChallengeConfiguration> challengeConfiguration;
         private readonly Func<DbConnection> dbConnectionFactory;
 
         public AthleteController(
             IOptions<SegmentChallengeConfiguration> siteConfiguration,
-            IOptions<SegmentChallengeConfiguration> challengeConfiguration,
             Func<DbConnection> dbConnectionFactory) {
 
             this.siteConfiguration = siteConfiguration;
-            this.challengeConfiguration = challengeConfiguration;
             this.dbConnectionFactory = dbConnectionFactory;
         }
 
@@ -108,7 +105,7 @@ namespace SegmentChallengeWeb.Controllers {
             Response.Cookies.Append(
                 "id_token",
                 StravaConnectController.CreateAthleteJwt(
-                    this.challengeConfiguration.Value,
+                    this.siteConfiguration.Value,
                     athlete
                 )
             );
