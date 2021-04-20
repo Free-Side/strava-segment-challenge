@@ -692,18 +692,24 @@ namespace SegmentChallengeWeb.Controllers {
                     // Scan forward until we find the next point, keeping track of gaps
                     Int32 nextSegmentIx;
                     Int32 nextPointIx;
-                    if (currentPointIx + 1 < ride.Track.Segments[currentSegmentIx].Points.Count) {
-                        nextPointIx = currentPointIx + 1;
+                    if (Distance(routePoint, ride.Track.Segments[currentSegmentIx].Points[currentPointIx]) < tolerance) {
+                        // just accept the current point as valid for this route point
                         nextSegmentIx = currentSegmentIx;
-                    } else if (currentSegmentIx + 1 < ride.Track.Segments.Count) {
-                        nextSegmentIx = currentSegmentIx + 1;
-                        // We assume that each segment has at least one point
-                        nextPointIx = 0;
+                        nextPointIx = currentPointIx;
                     } else {
-                        // End of the ride
-                        nextSegmentIx = -1;
-                        nextPointIx = -1;
-                        Console.Error.WriteLine($"{routePointIx} - Reached the end of the ride!");
+                        if (currentPointIx + 1 < ride.Track.Segments[currentSegmentIx].Points.Count) {
+                            nextPointIx = currentPointIx + 1;
+                            nextSegmentIx = currentSegmentIx;
+                        } else if (currentSegmentIx + 1 < ride.Track.Segments.Count) {
+                            nextSegmentIx = currentSegmentIx + 1;
+                            // We assume that each segment has at least one point
+                            nextPointIx = 0;
+                        } else {
+                            // End of the ride
+                            nextSegmentIx = -1;
+                            nextPointIx = -1;
+                            Console.Error.WriteLine($"{routePointIx} - Reached the end of the ride!");
+                        }
                     }
 
                     var gap = TimeSpan.Zero;
@@ -712,6 +718,12 @@ namespace SegmentChallengeWeb.Controllers {
                         nextPoint = ride.Track.Segments[nextSegmentIx].Points[nextPointIx];
 
                         while (Distance(routePoint, nextPoint) > tolerance && Distance(routePoint, nextPoint) < tolerance * 100 && iterations < MaximumInteractions) {
+                            // if (!skipping) {
+                            //     Console.Error.WriteLine(
+                            //         $"Ride point {nextPointIx} is {Distance(routePoint, nextPoint)} m from route point {routePointIx} which is > tolerance {tolerance}"
+                            //     );
+                            // }
+
                             iterations++;
                             if (skipping && Distance(startPoint, nextPoint) <= tolerance) {
                                 // The track went off course and returned to the start!
