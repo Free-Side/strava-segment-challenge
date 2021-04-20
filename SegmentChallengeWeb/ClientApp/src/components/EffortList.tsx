@@ -1,14 +1,16 @@
 import * as React from 'react';
 import { connect, Matching } from "react-redux";
-import * as ChallengeDetailsStore from "../store/ChallengeDetails";
 import moment from "moment";
+import * as ChallengeDetailsStore from "../store/ChallengeDetails";
 import { ApplicationState } from "../store";
 import { ChallengeType } from "../store/ChallengeList";
+import { LoginState } from "../store/Login";
 
 type EffortListProps =
     ChallengeDetailsStore.ChallengeDetailsState &
     {
-        byCategory: boolean
+        byCategory: boolean,
+        login?: LoginState
     };
 
 function toTimeFormat(duration: moment.Duration) {
@@ -51,7 +53,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
         // TODO filter by category
         const showLapCount = challengeType === ChallengeType.MostLaps;
 
-        function renderCategoryResults(categoryName: string, categoryEfforts: ChallengeDetailsStore.Effort[]) {
+        let renderCategoryResults = (categoryName: string, categoryEfforts: ChallengeDetailsStore.Effort[]) => {
             const columns = showLapCount ? 4 : 3;
             return (
                 <tbody key={categoryName}>
@@ -67,7 +69,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                 {categoryEfforts.map((effort, ix) =>
                     <tr id={`effort_${effort.id}`} key={effort.id}>
                         <td>{ix + 1}</td>
-                        <td>{effort.athleteName}</td>
+                        <td>{effort.athleteName}{this.props.login?.loggedInUser?.user_data.is_admin && (` (${effort.athleteId})`)}</td>
                         {showLapCount && <td>{effort.lapCount}</td>}
                         <td>{toTimeFormat(moment.duration(effort.elapsedTime, 'seconds'))}</td>
                     </tr>
@@ -92,7 +94,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                 </table>
             );
         } else {
-            const showCategory = !(this.props.selectedCategory.maximumAge && this.props.selectedCategory.gender);
+            const showCategory = !(this.props.selectedCategory?.maximumAge && this.props.selectedCategory?.gender);
             return (
                 <table className="main-table table-striped">
                     <thead>
@@ -106,7 +108,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                     <tbody>
                     {efforts.map((effort: ChallengeDetailsStore.Effort) =>
                         <tr id={`effort_${effort.id}`} key={effort.id}>
-                            <td>{effort.athleteName}</td>
+                            <td>{effort.athleteName}{this.props.login?.loggedInUser?.user_data.is_admin && (` (${effort.athleteId})`)}</td>
                             {showCategory && <td>{this.getCategory(effort.athleteAge, effort.athleteGender)}</td>}
                             {showLapCount && <td>{effort.lapCount}</td>}
                             <td className={effort.isKOM ? 'kom' : ''}>{toTimeFormat(moment.duration(effort.elapsedTime, 'seconds'))}</td>
@@ -151,5 +153,5 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
 }
 
 export default connect(
-    (state: ApplicationState) => state.challengeDetails
+    (state: ApplicationState) => ({...state.challengeDetails, login: state.login})
 )(EffortList);

@@ -22,7 +22,7 @@ class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEff
     }
 
     private renderNoEffortListTable(athletes: ChallengeDetailsStore.Athlete[], efforts: ChallengeDetailsStore.Effort[]) {
-        const showCategory = !(this.props.selectedCategory.maximumAge && this.props.selectedCategory.gender);
+        const showCategory = !(this.props.selectedCategory?.maximumAge && this.props.selectedCategory?.gender);
         const athletesWithEffort = new Set<number>(efforts.map(e => e.athleteId));
         const athletesWithNoEfforts = athletes.filter(a => !athletesWithEffort.has(a.id));
         if (athletesWithNoEfforts.length > 0) {

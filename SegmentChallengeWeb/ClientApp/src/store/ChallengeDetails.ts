@@ -38,7 +38,7 @@ export interface ChallengeDetailsState {
     waitingForInviteCode?: boolean,
     registering?: boolean,
     registrationError?: string,
-    selectedCategory: Category,
+    selectedCategory: Category | null,
     ageGroups?: AgeGroup[],
     allEfforts?: Effort[],
     allAthletes?: Athlete[],

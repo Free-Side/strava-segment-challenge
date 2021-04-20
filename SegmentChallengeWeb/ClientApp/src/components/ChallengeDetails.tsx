@@ -147,7 +147,7 @@ class ChallengeDetails extends React.PureComponent<Matching<ChallengeDetailsProp
                             <a onClick={() => this.displayResultsByCategory()} className="alternate-results-display clickable">By Category</a>}
                     </h3>
                     <div className="flex-row row">
-                        <EffortList byCategory={!!this.state.byCategory} />
+                        <EffortList byCategory={!!this.state.byCategory} selectedCategory={null} />
                         {/*<div className="side-panel">*/}
                         {/*    <CategorySelector />*/}
                         {/*</div>*/}
