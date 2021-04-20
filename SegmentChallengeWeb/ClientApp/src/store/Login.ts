@@ -26,6 +26,10 @@ export interface LoggedInAction {
     loggedInUser: LoginInfo
 }
 
+export interface LoggedOutAction {
+    type: 'LOGGED_OUT'
+}
+
 export interface ErrorLoggingIn {
     type: 'ERROR_LOGGING_IN',
     message: string
@@ -39,6 +43,14 @@ export interface ErrorSigningUp {
 export interface ErrorSettingProfileAction {
     type: 'ERROR_SETTING_USER_PROFILE',
     message: string
+}
+
+export enum LoginActions {
+    LoggedIn = 'LOGGED_IN',
+    LoggedOut = 'LOGGED_OUT',
+    ErrorLoggingIn = 'ERROR_LOGGING_IN',
+    ErrorSigningUp = 'ERROR_SIGNING_UP',
+    ErrorSettingProfile = 'ERROR_SETTING_USER_PROFILE'
 }
 
 export interface UserProfile {
@@ -59,6 +71,10 @@ export interface UserSignUp {
 
 function isLoggedInAction(action: Action): action is LoggedInAction {
     return action.type === 'LOGGED_IN';
+}
+
+function isLoggedOutAction(action: Action): action is LoggedInAction {
+    return action.type === 'LOGGED_OUT';
 }
 
 function isErrorLoggingIn(action: Action): action is ErrorLoggingIn {
@@ -214,6 +230,8 @@ export const reducer: Reducer<LoginState> = (state: LoginState | undefined, acti
 
     if (isLoggedInAction(action)) {
         return { ...state, loggedInUser: action.loggedInUser, loginError: undefined, signUpError: undefined };
+    } else if (isLoggedOutAction(action)) {
+        return { ...state, loggedInUser: undefined, loginError: undefined, signUpError: undefined };
     } else if (isErrorLoggingIn(action)) {
         console.log('Error logging in: ' + action.message);
         return { ...state, loggedInUser: undefined, loginError: action.message };

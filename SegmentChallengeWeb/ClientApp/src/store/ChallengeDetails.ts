@@ -2,7 +2,7 @@ import * as ChallengeListStore from "./ChallengeList";
 import { ApplicationState, AppThunkAction } from "./index";
 import { AnyAction, Reducer } from "redux";
 import { generateErrorMessage, hasContent } from "../RestHelper";
-import { LoggedInAction } from "./Login";
+import { LoggedInAction, LoggedOutAction, LoginActions } from "./Login";
 
 export interface AgeGroup {
     maximumAge: number,
@@ -154,7 +154,8 @@ type KnownAction =
     | ChallengeListStore.RequestChallengeListAction
     | ChallengeListStore.ReceiveChallengeListAction
     | ChallengeListStore.ErrorFetchingChallengeListAction
-    | LoggedInAction;
+    | LoggedInAction
+    | LoggedOutAction;
 
 function getSelectedChallenge(challenges: ChallengeListStore.Challenge[], selectedChallenge: string): ChallengeListStore.Challenge | undefined {
     return challenges.filter(c => c.name === selectedChallenge)[0];
@@ -179,6 +180,10 @@ function fetchRegistrationStatus(appState: ApplicationState, selectedChallenge: 
                     type: ChallengeDetailActions.RegistrationStatusReceived,
                     selectedChallengeName: selectedChallenge,
                     registrationStatus: data.registered
+                });
+            } else if (response.status === 401) {
+                dispatch({
+                    type: 'LOGGED_OUT'
                 });
             } else {
                 let detail: string;
@@ -519,6 +524,13 @@ export const reducer: Reducer<ChallengeDetailsState> =
                 return { ...state, registering: false, registrationError: 'Invalid invite code.', waitingForInviteCode: true };
             case ChallengeDetailActions.CancelJoin:
                 return { ...state, waitingForInviteCode: false, inviteCode: undefined };
+            case LoginActions.LoggedOut:
+                return {
+                    ...state,
+                    registrationError: 'You have been logged out. Please login again to see your registration status.',
+                    fetchingRegistrationStatusFor: undefined,
+                    isAthleteRegistered: undefined
+                };
             case ChallengeDetailActions.ServerRequestError:
             case 'ERROR_FETCHING_CHALLENGE_LIST':
                 return { ...state, errorMessage: (action as HasMessage).message };
