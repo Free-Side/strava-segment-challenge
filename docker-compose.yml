@@ -4,7 +4,7 @@ services:
   segment-challenge-web:
     image: segment-challenge:${TAG-latest}
     container_name: segment-challenge-web
-    restart: never
+    restart: unless-stopped
     environment:
       - MYSQL__HOST=segment-challenge-sql
       - MYSQL__PORT=3306
@@ -24,7 +24,7 @@ services:
   segment-challenge-sql:
     image: mysql:5.7
     container_name: segment-challenge-sql
-    restart: never
+    restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL__PASSWORD-segmentchallenge}
     volumes:
