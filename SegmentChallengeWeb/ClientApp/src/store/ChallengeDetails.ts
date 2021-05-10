@@ -9,6 +9,11 @@ export interface AgeGroup {
     description: string
 }
 
+export interface SpecialCategory {
+    specialCategoryId: number,
+    categoryName: string
+}
+
 export interface Effort {
     id: number,
     athleteId: number,
@@ -18,14 +23,16 @@ export interface Effort {
     activityId: number,
     lapCount: number,
     elapsedTime: number,
-    isKOM: boolean
+    isKOM: boolean,
+    specialCategoryId: number | null
 }
 
 export interface Athlete {
     id: number,
     displayName: string,
     gender: string,
-    age: number
+    age: number,
+    specialCategoryId: number | null
 }
 
 export type Category = { minimumAge?: number, maximumAge?: number, gender?: string, description: string };
@@ -40,6 +47,7 @@ export interface ChallengeDetailsState {
     registrationError?: string,
     selectedCategory: Category | null,
     ageGroups?: AgeGroup[],
+    specialCategories?: SpecialCategory[],
     allEfforts?: Effort[],
     allAthletes?: Athlete[],
     errorMessage?: string,
@@ -50,9 +58,10 @@ export enum ChallengeDetailActions {
     SelectedChallengeChanged = 'SELECTED_CHALLENGE_CHANGED',
     CurrentChallengeChanged = 'CURRENT_CHALLENGE_CHANGED',
     SelectedCategoryChanged = 'SELECTED_CATEGORY_CHANGED',
-    FetchingRegistationStatus = 'FETCHING_REGISTRATION_STATUS',
+    FetchingRegistrationStatus = 'FETCHING_REGISTRATION_STATUS',
     RegistrationStatusReceived = 'REGISTRATION_STATUS_RECEIVED',
     AgeGroupsReceived = 'AGE_GROUPS_RECEIVED',
+    SpecialCategoriesReceived = 'SPECIAL_CATEGORIES_RECEIVED',
     EffortsReceived = 'EFFORTS_RECEIVED',
     AthletesReceived = 'ATHLETES_RECEIVED',
     SpecifyInviteCode = 'SPECIFY_INVITE_CODE',
@@ -78,8 +87,8 @@ export interface CurrentChallengeChanged {
     currentChallenge: ChallengeListStore.Challenge | undefined
 }
 
-export interface FetchingRegistationStatus {
-    type: ChallengeDetailActions.FetchingRegistationStatus,
+export interface FetchingRegistrationStatus {
+    type: ChallengeDetailActions.FetchingRegistrationStatus,
     selectedChallengeName: string,
 }
 
@@ -93,6 +102,12 @@ export interface AgeGroupsReceived {
     type: ChallengeDetailActions.AgeGroupsReceived,
     selectedChallengeName: string,
     ageGroups: AgeGroup[]
+}
+
+export interface SpecialCategoriesReceived {
+    type: ChallengeDetailActions.SpecialCategoriesReceived,
+    selectedChallengeName: string,
+    specialCategories: SpecialCategory[]
 }
 
 export interface EffortsReceived {
@@ -140,9 +155,10 @@ type KnownAction =
     SelectedChallengeChanged
     | CurrentChallengeChanged
     | SelectedCategoryChanged
-    | FetchingRegistationStatus
+    | FetchingRegistrationStatus
     | RegistrationStatusReceived
     | AgeGroupsReceived
+    | SpecialCategoriesReceived
     | EffortsReceived
     | AthletesReceived
     | SpecifyInviteCode
@@ -169,7 +185,7 @@ function fetchRegistrationStatus(appState: ApplicationState, selectedChallenge: 
 
     // Fetch Registration Status
     dispatch({
-        type: ChallengeDetailActions.FetchingRegistationStatus,
+        type: ChallengeDetailActions.FetchingRegistrationStatus,
         selectedChallengeName: selectedChallenge
     })
     fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/registration`, { credentials: 'same-origin' })
@@ -258,6 +274,39 @@ export const actionCreators = {
                             dispatch({
                                 type: ChallengeDetailActions.ServerRequestError,
                                 message: generateErrorMessage('challenge age groups', response.status, response.statusText, detail)
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        dispatch({
+                            type: ChallengeDetailActions.ServerRequestError,
+                            message: error
+                        })
+                    });
+
+                // Fect Special Categories
+                fetch(`${appState.config.apiBaseUrl}api/challenges/${selectedChallenge}/special_categories`)
+                    .then(async response => {
+                        if (response.ok) {
+                            const data = await response.json();
+                            dispatch({
+                                type: ChallengeDetailActions.SpecialCategoriesReceived,
+                                selectedChallengeName: selectedChallenge,
+                                specialCategories: data
+                            });
+                        } else {
+                            let detail: string;
+                            if (hasContent(response)) {
+                                detail = await response.text();
+                            } else {
+                                detail = 'Unknown';
+                            }
+
+                            console.error(`Error fetching special categories. Status: ${response.status}, Status Description: ${response.statusText}, Detail: ${detail}`);
+
+                            dispatch({
+                                type: ChallengeDetailActions.ServerRequestError,
+                                message: generateErrorMessage('challenge categories', response.status, response.statusText, detail)
                             });
                         }
                     })
@@ -472,10 +521,10 @@ export const reducer: Reducer<ChallengeDetailsState> =
                 }
 
                 break;
-            case ChallengeDetailActions.FetchingRegistationStatus:
+            case ChallengeDetailActions.FetchingRegistrationStatus:
                 return {
                     ...state,
-                    fetchingRegistrationStatusFor: (action as FetchingRegistationStatus).selectedChallengeName
+                    fetchingRegistrationStatusFor: (action as FetchingRegistrationStatus).selectedChallengeName
                 };
             case ChallengeDetailActions.RegistrationStatusReceived:
                 const registrationStatusReceived = action as RegistrationStatusReceived;
@@ -497,6 +546,13 @@ export const reducer: Reducer<ChallengeDetailsState> =
                 const ageGroupsReceivedAction = action as AgeGroupsReceived;
                 if (ageGroupsReceivedAction.selectedChallengeName === state.selectedChallengeName) {
                     return { ...state, ageGroups: ageGroupsReceivedAction.ageGroups };
+                }
+
+                break;
+            case ChallengeDetailActions.SpecialCategoriesReceived:
+                const specialCategoriesReceivedAction = action as SpecialCategoriesReceived;
+                if (specialCategoriesReceivedAction.selectedChallengeName === state.selectedChallengeName) {
+                    return { ...state, specialCategories: specialCategoriesReceivedAction.specialCategories };
                 }
 
                 break;

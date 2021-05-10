@@ -81,7 +81,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
         if (byCategory) {
             let resultsByCategory: any = {};
             for (const effort of efforts) {
-                const cat = this.getCategory(effort.athleteAge, effort.athleteGender);
+                const cat = this.getCategory(effort.athleteAge, effort.athleteGender, effort.specialCategoryId);
                 if (!resultsByCategory[cat]) {
                     resultsByCategory[cat] = [effort];
                 } else {
@@ -109,7 +109,7 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                     {efforts.map((effort: ChallengeDetailsStore.Effort) =>
                         <tr id={`effort_${effort.id}`} key={effort.id}>
                             <td>{effort.athleteName}{this.props.login?.loggedInUser?.user_data.is_admin && (` (${effort.athleteId})`)}</td>
-                            {showCategory && <td>{this.getCategory(effort.athleteAge, effort.athleteGender)}</td>}
+                            {showCategory && <td>{this.getCategory(effort.athleteAge, effort.athleteGender, effort.specialCategoryId)}</td>}
                             {showLapCount && <td>{effort.lapCount}</td>}
                             <td className={effort.isKOM ? 'kom' : ''}>{toTimeFormat(moment.duration(effort.elapsedTime, 'seconds'))}</td>
                         </tr>
@@ -120,8 +120,8 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
         }
     }
 
-    private getCategory(athleteAge: number, athleteGender: string): string {
-        if (this.props.ageGroups) {
+    private getCategory(athleteAge: number, athleteGender: string, specialCategoryId: number | null): string {
+        if (this.props.ageGroups && this.props.specialCategories) {
             let gender = 'Other';
             switch (athleteGender) {
                 case 'm':
@@ -134,12 +134,25 @@ class EffortList extends React.PureComponent<Matching<EffortListProps, EffortLis
                     break;
             }
 
-            const ageGroup = this.props.ageGroups.filter(a => a.maximumAge >= athleteAge)[0];
-            if (ageGroup) {
-                return `${gender}, ${ageGroup.description}`;
+            let category;
+            if (specialCategoryId != null) {
+                const cat = this.props.specialCategories.filter(c => c.specialCategoryId === specialCategoryId)[0];
+                if (cat) {
+                    category = cat.categoryName;
+                }
+            } else if (this.props.ageGroups) {
+                const ageGroup = this.props.ageGroups.filter(a => a.maximumAge >= athleteAge)[0];
+                if (ageGroup) {
+                    category = ageGroup.description ;
+                }
+            }
+
+            if (category) {
+                return `${gender}, ${category}`
             } else {
                 return gender;
             }
+
         } else {
             return 'Unknown';
         }

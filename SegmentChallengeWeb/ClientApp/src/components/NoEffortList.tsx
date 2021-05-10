@@ -40,7 +40,7 @@ class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEff
                         {athletesWithNoEfforts.map((athlete: ChallengeDetailsStore.Athlete) =>
                             <tr key={athlete.id}>
                                 <td>{athlete.displayName}{this.props.login?.loggedInUser?.user_data.is_admin && (` (${athlete.id})`)}</td>
-                                {showCategory && <td>{this.getCategory(athlete.age, athlete.gender)}</td>}
+                                {showCategory && <td>{this.getCategory(athlete.age, athlete.gender, athlete.specialCategoryId)}</td>}
                             </tr>
                         )}
                         </tbody>
@@ -54,8 +54,8 @@ class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEff
         }
     }
 
-    private getCategory(athleteAge: number, athleteGender: string): string {
-        if (this.props.ageGroups) {
+    private getCategory(athleteAge: number, athleteGender: string, specialCategoryId: number | null): string {
+        if (this.props.ageGroups && this.props.specialCategories) {
             let gender = 'Other';
             switch (athleteGender) {
                 case 'm':
@@ -68,9 +68,21 @@ class NoEffortList extends React.PureComponent<Matching<NoEffortListProps, NoEff
                     break;
             }
 
-            const ageGroup = this.props.ageGroups.filter(a => a.maximumAge >= athleteAge)[0];
-            if (ageGroup) {
-                return `${gender}, ${ageGroup.description}`;
+            let category;
+            if (specialCategoryId != null) {
+                const cat = this.props.specialCategories.filter(c => c.specialCategoryId === specialCategoryId)[0];
+                if (cat) {
+                    category = cat.categoryName;
+                }
+            } else if (this.props.ageGroups) {
+                const ageGroup = this.props.ageGroups.filter(a => a.maximumAge >= athleteAge)[0];
+                if (ageGroup) {
+                    category = ageGroup.description ;
+                }
+            }
+
+            if (category) {
+                return `${gender}, ${category}`
             } else {
                 return gender;
             }

@@ -113,6 +113,35 @@ namespace SegmentChallengeWeb.Controllers {
             );
         }
 
+        [HttpGet("{name}/special_categories")]
+        public async Task<IActionResult> GetSpecialCategories(
+            String name,
+            CancellationToken cancellationToken) {
+
+            await using var connection = this.dbConnectionFactory();
+            await connection.OpenAsync(cancellationToken);
+
+            await using var dbContext = new SegmentChallengeDbContext(connection);
+
+            var challengeTable = dbContext.Set<Challenge>();
+            var specialCategoryTable = dbContext.Set<SpecialCategory>();
+
+            var challenge = await challengeTable.SingleOrDefaultAsync(
+                c => c.Name == name,
+                cancellationToken
+            );
+
+            if (challenge == null) {
+                return NotFound();
+            }
+
+            return new JsonResult(
+                await specialCategoryTable
+                    .Where(cat => cat.ChallengeId == challenge.Id)
+                    .ToListAsync(cancellationToken)
+            );
+        }
+
         [HttpGet("{name}/registration")]
         public async Task<IActionResult> GetRegistrationStatus(
             String name,
@@ -153,6 +182,7 @@ namespace SegmentChallengeWeb.Controllers {
         public async Task<IActionResult> Register(
             String name,
             [FromQuery] String inviteCode,
+            [FromQuery] Int32? specialCategory,
             CancellationToken cancellationToken) {
 
             if (!(User is JwtCookiePrincipal identity)) {
@@ -166,6 +196,7 @@ namespace SegmentChallengeWeb.Controllers {
 
             var challengeTable = dbContext.Set<Challenge>();
             var registrationTable = dbContext.Set<ChallengeRegistration>();
+            var specialCategoryTable = dbContext.Set<SpecialCategory>();
 
             var challenge = await challengeTable.SingleOrDefaultAsync(
                 c => c.Name == name,
@@ -191,10 +222,26 @@ namespace SegmentChallengeWeb.Controllers {
             );
 
             if (registration == null) {
+                if (specialCategory.HasValue) {
+                    var category =
+                        await specialCategoryTable.SingleOrDefaultAsync(
+                            sc => sc.ChallengeId == challenge.Id && sc.SpecialCategoryId == specialCategory,
+                            cancellationToken
+                        );
+
+                    if (category == null) {
+                        return BadRequest(new ProblemDetails {
+                            Detail = "The specified special category was not found for this challenge.",
+                            Type = "urn:segment-challenge-app:special-category-not-found"
+                        });
+                    }
+                }
+
                 await registrationTable.AddAsync(
                     new ChallengeRegistration {
                         ChallengeId = challenge.Id,
-                        AthleteId = identity.UserId
+                        AthleteId = identity.UserId,
+                        SpecialCategoryId = specialCategory
                     },
                     cancellationToken
                 );
@@ -218,6 +265,7 @@ namespace SegmentChallengeWeb.Controllers {
             await using var dbContext = new SegmentChallengeDbContext(connection);
 
             var challengeTable = dbContext.Set<Challenge>();
+            var specialCategoryTable = dbContext.Set<SpecialCategory>();
             var registrationTable = dbContext.Set<ChallengeRegistration>();
             var ageGroupsTable = dbContext.Set<AgeGroup>();
             var effortsTable = dbContext.Set<Effort>();
@@ -266,36 +314,39 @@ namespace SegmentChallengeWeb.Controllers {
                     .OrderBy(row => row.Athlete.Id)
                     .ToListAsync(cancellationToken: cancellationToken);
 
-            var results = new List<(Effort Effort, Athlete Athlete, Int32 LapCount)>();
+            var results = new List<(Effort Effort, Athlete Athlete, Int32 LapCount, ChallengeRegistration registration)>();
 
             if (challenge.Type == ChallengeType.MostLaps) {
                 foreach (var effortGroup in efforts.GroupBy(e => e.Athlete.Id)) {
-                    var (effort, athlete, lapCount) =
+                    var (effort, athlete, lapCount, registration) =
                         effortGroup.Aggregate(
-                            (effort: (Effort)null, athlete: (Athlete)null, lapCount: 0),
+                            (effort: (Effort)null, athlete: (Athlete)null, lapCount: 0, registration: (ChallengeRegistration)null),
                             (total, nextEffort) => {
                                 if (total.effort == null) {
-                                    return (nextEffort.Effort, nextEffort.Athlete, 1);
+                                    return (nextEffort.Effort, nextEffort.Athlete, 1, nextEffort.Registration);
                                 } else {
                                     return (total.effort.WithElapsedTime(total.effort.ElapsedTime + nextEffort.Effort.ElapsedTime),
                                         total.athlete,
-                                        total.lapCount + 1);
+                                        total.lapCount + 1,
+                                        total.registration);
                                 }
                             });
-                    results.Add((effort, effortGroup.First().Athlete, lapCount));
+                    results.Add((effort, effortGroup.First().Athlete, lapCount, registration));
                 }
             } else {
                 Athlete currentAthlete = null;
+                ChallengeRegistration currentRegistration = null;
                 Effort bestEffort = null;
 
                 foreach (var effort in efforts.Append(null)) {
                     if (effort == null || effort.Athlete.Id != currentAthlete?.Id) {
                         if (bestEffort != null) {
-                            results.Add((bestEffort, currentAthlete, 1));
+                            results.Add((bestEffort, currentAthlete, 1, currentRegistration));
                         }
 
                         if (effort != null) {
                             currentAthlete = effort.Athlete;
+                            currentRegistration = effort.Registration;
                             bestEffort = effort.Effort;
                         }
                     } else if (bestEffort == null ||
@@ -305,33 +356,45 @@ namespace SegmentChallengeWeb.Controllers {
                 }
             }
 
-            (String Gender, Int32 MaxAge) GetCategory(Athlete athlete) {
-                var birthDateYear =
-                    (athlete.BirthDate?.Year).GetValueOrDefault(DateTime.UtcNow.Year - 90);
-                var age = DateTime.UtcNow.Year - birthDateYear;
+            var specialCategoryLookup =
+                await specialCategoryTable.Where(sc => sc.ChallengeId == challenge.Id)
+                    .ToDictionaryAsync(sc => sc.SpecialCategoryId, cancellationToken);
 
-                var ageGroup = ageGroups.SkipWhile(ag => age > ag.MaximumAge).First();
+            String GetCategory(Athlete athlete, ChallengeRegistration registration) {
+                if (registration.SpecialCategoryId.HasValue &&
+                    specialCategoryLookup.TryGetValue(registration.SpecialCategoryId.Value, out var cat)) {
+                    return $"{athlete.Gender} - {cat.CategoryName}";
+                } else {
+                    var birthDateYear =
+                        (athlete.BirthDate?.Year).GetValueOrDefault(DateTime.UtcNow.Year - 90);
+                    var age = DateTime.UtcNow.Year - birthDateYear;
 
-                return (athlete.Gender.GetValueOrDefault('M').ToString(), ageGroup.MaximumAge);
+                    var ageGroup = ageGroups.SkipWhile(ag => age > ag.MaximumAge).First();
+
+                    return $"{athlete.Gender} - {ageGroup.MaximumAge}";
+                }
             }
 
-            var resultsByCategory = new List<(Effort Effort, Athlete Athlete, Int32 LapCount, Boolean IsKOM)>();
+            var resultsByCategory = new List<(Effort Effort, Athlete Athlete, Int32 LapCount, Boolean IsKOM, Int32? SpecialCategoryId)>();
 
-            (String Gender, Int32 MaxAge) currentCategory = (null, 0);
+            String currentCategory = null;
 
-            foreach (var (effort, athlete, lapCount) in results.OrderBy(e => GetCategory(e.Athlete)).ThenByDescending(e => e.LapCount)
-                .ThenBy(e => e.Effort.ElapsedTime)) {
-                var category = GetCategory(athlete);
+            var orderedResults =
+                results.OrderBy(e => GetCategory(e.Athlete, e.registration))
+                    .ThenByDescending(e => e.LapCount)
+                    .ThenBy(e => e.Effort.ElapsedTime);
+            foreach (var (effort, athlete, lapCount, reg) in orderedResults) {
+                var category = GetCategory(athlete, reg);
                 if (category != currentCategory) {
-                    resultsByCategory.Add((effort, athlete, lapCount, true));
+                    resultsByCategory.Add((effort, athlete, lapCount, true, reg.SpecialCategoryId));
                     currentCategory = category;
                 } else if (resultsByCategory.Count > 0 &&
                     resultsByCategory[^1].LapCount == lapCount &&
                     resultsByCategory[^1].Effort.ElapsedTime == effort.ElapsedTime) {
                     // Tie for first
-                    resultsByCategory.Add((effort, athlete, lapCount, true));
+                    resultsByCategory.Add((effort, athlete, lapCount, true, reg.SpecialCategoryId));
                 } else {
-                    resultsByCategory.Add((effort, athlete, lapCount, false));
+                    resultsByCategory.Add((effort, athlete, lapCount, false, reg.SpecialCategoryId));
                 }
             }
 
@@ -351,7 +414,8 @@ namespace SegmentChallengeWeb.Controllers {
                             lapCount = e.LapCount,
                             elapsedTime = e.Effort.ElapsedTime,
                             startDate = e.Effort.StartDate,
-                            isKOM = e.IsKOM
+                            isKOM = e.IsKOM,
+                            specialCategoryId = e.SpecialCategoryId
                         })
             );
         }
@@ -384,17 +448,17 @@ namespace SegmentChallengeWeb.Controllers {
                         r => r.AthleteId,
                         (a, r) => new { Athlete = a, Registration = r })
                     .Where(row => row.Registration.ChallengeId == challenge.Id)
-                    .Select(row => row.Athlete)
                     .ToListAsync(cancellationToken);
 
             return new JsonResult(
                 athletes
-                    .Where(a => a.Gender.HasValue && a.BirthDate.HasValue)
+                    .Where(a => a.Athlete.Gender.HasValue && a.Athlete.BirthDate.HasValue)
                     .Select(a => new {
-                        id = a.Id,
-                        displayName = a.GetDisplayName(),
-                        gender = a.Gender.ToString(),
-                        age = challenge.StartDate.Year - a.BirthDate.Value.Year
+                        id = a.Athlete.Id,
+                        displayName = a.Athlete.GetDisplayName(),
+                        gender = a.Athlete.Gender.ToString(),
+                        age = challenge.StartDate.Year - a.Athlete.BirthDate.Value.Year,
+                        specialCategoryId = a.Registration.SpecialCategoryId
                     })
             );
         }
@@ -617,6 +681,7 @@ namespace SegmentChallengeWeb.Controllers {
 
             var routePoints = route.Track.Segments.SelectMany(seg => seg.Points).ToArray();
             var startPoint = routePoints[0];
+
             String renderPoint(TrackPoint point) {
                 return $"{(point.Longitude - startPoint.Longitude) * 1000:f3},{(point.Latitude - startPoint.Latitude) * -1000:f3}";
             }
@@ -717,7 +782,8 @@ namespace SegmentChallengeWeb.Controllers {
                     if (nextPointIx >= 0) {
                         nextPoint = ride.Track.Segments[nextSegmentIx].Points[nextPointIx];
 
-                        while (Distance(routePoint, nextPoint) > tolerance && Distance(routePoint, nextPoint) < tolerance * 100 && iterations < MaximumInteractions) {
+                        while (Distance(routePoint, nextPoint) > tolerance && Distance(routePoint, nextPoint) < tolerance * 100 &&
+                            iterations < MaximumInteractions) {
                             // if (!skipping) {
                             //     Console.Error.WriteLine(
                             //         $"Ride point {nextPointIx} is {Distance(routePoint, nextPoint)} m from route point {routePointIx} which is > tolerance {tolerance}"

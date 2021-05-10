@@ -6,5 +6,6 @@ namespace SegmentChallengeWeb.Models {
     public class ChallengeRegistration {
         public Int32 ChallengeId { get; set; }
         public Int64 AthleteId { get; set; }
+        public Int32? SpecialCategoryId { get; set; }
     }
 }
