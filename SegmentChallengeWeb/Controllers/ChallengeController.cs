@@ -317,6 +317,7 @@ namespace SegmentChallengeWeb.Controllers {
             var results = new List<(Effort Effort, Athlete Athlete, Int32 LapCount, ChallengeRegistration registration)>();
 
             if (challenge.Type == ChallengeType.MostLaps) {
+                // Athletes are ranked based on who completed the most laps during the challenge window
                 foreach (var effortGroup in efforts.GroupBy(e => e.Athlete.Id)) {
                     var (effort, athlete, lapCount, registration) =
                         effortGroup.Aggregate(
@@ -332,6 +333,39 @@ namespace SegmentChallengeWeb.Controllers {
                                 }
                             });
                     results.Add((effort, effortGroup.First().Athlete, lapCount, registration));
+                }
+            } else if (challenge.Type == ChallengeType.MultiLap) {
+                // Really there should always be a lapCount > 1
+                var requiredLaps = challenge.LapCount.GetValueOrDefault(1);
+                // Athletes are ranked based on who has the best time for a fixed number laps in a single activity.
+                foreach (var effortGroup in efforts.GroupBy(e => e.Athlete.Id)) {
+                    var (athlete, registration) = effortGroup.Select(g => (g.Athlete, g.Registration)).First();
+                    Effort bestResult = null;
+                    foreach (var activityEffortGroup in effortGroup.GroupBy(g => g.Effort.ActivityId)) {
+                        var activityEfforts =
+                            activityEffortGroup.Select(g => g.Effort).OrderBy(e => e.StartDate).ToList();
+                        if (activityEfforts.Count >= requiredLaps) {
+                            // find the best set of N consecutive laps
+                            var runningEffortList = new Queue<Effort>();
+                            var runningTime = 0;
+                            foreach (var effort in activityEfforts) {
+                                runningEffortList.Enqueue(effort);
+                                runningTime += effort.ElapsedTime;
+                                if (runningEffortList.Count > requiredLaps) {
+                                    var oldestEffort = runningEffortList.Dequeue();
+                                    runningTime -= oldestEffort.ElapsedTime;
+                                }
+
+                                if (runningEffortList.Count == requiredLaps && (bestResult == null || runningTime < bestResult.ElapsedTime)) {
+                                    bestResult = runningEffortList.First().WithElapsedTime(runningTime);
+                                }
+                            }
+                        }
+                    }
+
+                    if (bestResult != null) {
+                        results.Add((bestResult, athlete, requiredLaps, registration));
+                    }
                 }
             } else {
                 Athlete currentAthlete = null;
@@ -608,6 +642,8 @@ namespace SegmentChallengeWeb.Controllers {
             [FromQuery(Name = "tolerance")] Double? toleranceOverride,
             [FromQuery(Name = "max-skip")] Double? maxSkipOverride,
             [FromQuery(Name = "moving-time")] Boolean forceUseMovingTime,
+            [FromQuery(Name = "segment-offset")] Int32 segmentOffset,
+            [FromQuery(Name = "offset")] Int32 offset,
             [FromForm] IFormFile gpxFile,
             CancellationToken cancellationToken) {
 
@@ -654,8 +690,128 @@ namespace SegmentChallengeWeb.Controllers {
             await using var gpxFileStream = gpxFile.OpenReadStream();
             var ride = (GpxData)gpxSerializer.Deserialize(gpxFileStream);
 
-            var currentSegmentIx = 0;
-            var currentPointIx = 0;
+            var efforts = new List<Object>();
+
+            // This is some haxin. Generating "unique" activityIds for these efforts based on upload time and activity id
+            var activityId =
+                ((Int64)DateTime.Now.Subtract(DateTime.UnixEpoch).TotalSeconds) * -1000000000 +
+                (athleteId < 0 ? athleteId : -1 * athleteId);
+
+            var segmentIx = segmentOffset;
+            var startIx = offset;
+            while (true) {
+                var effortDetail = ExtractEffort(route, ride, maximumSkip, tolerance, segmentIx, startIx);
+
+                if (image) {
+                    return new ContentResult {
+                        Content =
+                            new XDocument(
+                                new XDeclaration("1.0", "utf-8", "yes"),
+                                new XElement(
+                                    svgns + "svg",
+                                    new XElement(svgns + "path",
+                                        new XAttribute("style", "stroke: purple; stroke-width: 0.1; fill: none"),
+                                        new XAttribute("d", effortDetail.RoutePath)),
+                                    new XElement(svgns + "path",
+                                        new XAttribute("style", "stroke: red; stroke-width: 0.1; fill: none"),
+                                        new XAttribute("d", effortDetail.SkippedPath)),
+                                    new XElement(svgns + "path",
+                                        new XAttribute("style", "stroke: green; stroke-width: 0.1; fill: none"),
+                                        new XAttribute("d", effortDetail.RidePath)),
+                                    new XElement(svgns + "path",
+                                        new XAttribute("style", "stroke: blue; stroke-width: 0.1; fill: none"),
+                                        new XAttribute("d", effortDetail.MatchPath))
+                                )
+                            ).ToString(),
+                        ContentType = "image/svg+xml",
+                        StatusCode = effortDetail.IsMatch ? 200 : 400
+                    };
+                } else if (effortDetail.IsMatch) {
+                    var effortsTable = dbContext.Set<Effort>();
+                    Int64 id;
+                    lock (rand) {
+                        id = rand.Next(Int32.MinValue, -1) << 31 + rand.Next(Int32.MinValue, -1);
+                    }
+
+                    var newEffort = await effortsTable.AddAsync(
+                        new Effort {
+                            Id = id,
+                            ActivityId = activityId,
+                            AthleteId = athleteId,
+                            ElapsedTime =
+                                challenge.UseMovingTime ?
+                                    (Int32)effortDetail.Moving.TotalSeconds :
+                                    (Int32)effortDetail.Elapsed.TotalSeconds,
+                            SegmentId = challenge.SegmentId,
+                            StartDate = effortDetail.Start.Time
+                        },
+                        cancellationToken
+                    );
+
+                    efforts.Add(new {
+                        Effort = newEffort.Entity,
+                        effortDetail.Start,
+                        effortDetail.End,
+                        EndSegmentIndex = effortDetail.EndSegmentIndex,
+                        EndPointIndex = effortDetail.EndPointIndex,
+                        Elapsed = effortDetail.Elapsed.ToString(),
+                        Moving = effortDetail.Moving.ToString(),
+                        Stopped = effortDetail.Gaps.ToString()
+                    });
+
+                    segmentIx = effortDetail.EndSegmentIndex;
+                    startIx = effortDetail.EndPointIndex;
+                } else {
+                    break;
+                }
+            }
+
+            if (!debug) {
+                await dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            if (efforts.Count > 0) {
+                return Ok(efforts);
+            } else {
+                return BadRequest("The uploaded ride does not match the segment data for this challenge.");
+            }
+        }
+
+        public class EffortExtractionDetail {
+            public Boolean IsMatch => this.End != null;
+
+            public TrackPoint Start { get; set; }
+
+            public TrackPoint End { get; set; }
+
+            public Int32 EndSegmentIndex { get; set; }
+            public Int32 EndPointIndex { get; set; }
+
+            public TimeSpan Elapsed { get; set; }
+
+            public TimeSpan Moving { get; set; }
+
+            public TimeSpan Gaps { get; set; }
+
+            public String RoutePath { get; set; }
+
+            public String SkippedPath { get; set; }
+
+            public String RidePath { get; set; }
+
+            public String MatchPath { get; set; }
+        }
+
+        private EffortExtractionDetail ExtractEffort(
+            GpxData route,
+            GpxData ride,
+            Double maximumSkip,
+            Double tolerance,
+            Int32 segmentOffset = 0,
+            Int32 startOffset = 0) {
+
+            var currentSegmentIx = segmentOffset;
+            var currentPointIx = startOffset;
 
             TrackPoint start = null;
             TrackPoint end = null;
@@ -865,7 +1021,7 @@ namespace SegmentChallengeWeb.Controllers {
                         }
 
                         currentPointIx = nextPointIx;
-                        currentSegmentIx = nextSegmentIx;
+
                         matchCount++;
                     } else {
                         // If distance goes over Tolerance * 10 meters, try skipping this track point.
@@ -892,86 +1048,32 @@ namespace SegmentChallengeWeb.Controllers {
                 Console.Error.WriteLine("That looked like an infinite loop.");
             }
 
-            if (image) {
-                return new ContentResult {
-                    Content =
-                        new XDocument(
-                            new XDeclaration("1.0", "utf-8", "yes"),
-                            new XElement(
-                                svgns + "svg",
-                                new XElement(svgns + "path",
-                                    new XAttribute("style", "stroke: purple; stroke-width: 0.1; fill: none"),
-                                    new XAttribute("d", routePath.ToString())),
-                                new XElement(svgns + "path",
-                                    new XAttribute("style", "stroke: red; stroke-width: 0.1; fill: none"),
-                                    new XAttribute("d", skippedPath.ToString())),
-                                new XElement(svgns + "path",
-                                    new XAttribute("style", "stroke: green; stroke-width: 0.1; fill: none"),
-                                    new XAttribute("d", ridePath.ToString())),
-                                new XElement(svgns + "path",
-                                    new XAttribute("style", "stroke: blue; stroke-width: 0.1; fill: none"),
-                                    new XAttribute("d", matchPath.ToString()))
-                            )
-                        ).ToString(),
-                    ContentType = "image/svg+xml",
-                    StatusCode = match ? 200 : 400
-                };
-            } else if (match && start != null) {
+            if (match) {
                 end = ride.Track.Segments[currentSegmentIx].Points[currentPointIx];
                 var elapsed = end.Time.Subtract(start.Time);
                 var moving = elapsed.Subtract(gaps);
 
-                var effortsTable = dbContext.Set<Effort>();
-                // currently we only support uploads for single lap activities.
-                var effort =
-                    await effortsTable.SingleOrDefaultAsync(
-                        e => e.SegmentId == challenge.SegmentId && e.AthleteId == athleteId,
-                        cancellationToken);
-                if (effort != null) {
-                    // Update existing.
-                    effort.StartDate = start.Time;
-                    effort.ElapsedTime =
-                        challenge.UseMovingTime || forceUseMovingTime ?
-                            (Int32)moving.TotalSeconds :
-                            (Int32)elapsed.TotalSeconds;
-                } else {
-                    Int64 id;
-                    lock (rand) {
-                        id = rand.Next(Int32.MinValue, -1) << 31 + rand.Next(Int32.MinValue, -1);
-                    }
-
-                    var newEffort = await effortsTable.AddAsync(
-                        new Effort {
-                            Id = id,
-                            ActivityId = -1,
-                            AthleteId = athleteId,
-                            ElapsedTime =
-                                challenge.UseMovingTime ?
-                                    (Int32)moving.TotalSeconds :
-                                    (Int32)elapsed.TotalSeconds,
-                            SegmentId = challenge.SegmentId,
-                            StartDate = start.Time
-                        },
-                        cancellationToken
-                    );
-
-                    effort = newEffort.Entity;
-                }
-
-                if (!debug && !image) {
-                    await dbContext.SaveChangesAsync(cancellationToken);
-                }
-
-                return Ok(new {
-                    Effort = effort,
+                return new EffortExtractionDetail {
                     Start = start,
                     End = end,
-                    Elapsed = elapsed.ToString(),
-                    Moving = moving.ToString(),
-                    Stopped = gaps.ToString()
-                });
+                    Elapsed = elapsed,
+                    Moving = moving,
+                    EndSegmentIndex = currentSegmentIx,
+                    EndPointIndex = currentPointIx,
+                    Gaps = gaps,
+                    RoutePath = routePath.ToString(),
+                    RidePath = ridePath.ToString(),
+                    MatchPath = matchPath.ToString(),
+                    SkippedPath = skippedPath.ToString()
+                };
             } else {
-                return BadRequest("The uploaded ride does not match the segment data for this challenge.");
+                return new EffortExtractionDetail {
+                    Start = start,
+                    RoutePath = routePath.ToString(),
+                    RidePath = ridePath.ToString(),
+                    MatchPath = matchPath.ToString(),
+                    SkippedPath = skippedPath.ToString()
+                };
             }
         }
 

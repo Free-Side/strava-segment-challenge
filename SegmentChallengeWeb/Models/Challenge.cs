@@ -19,6 +19,8 @@ namespace SegmentChallengeWeb.Models {
 
         public Boolean UseMovingTime { get; set; }
 
+        public Int32? LapCount { get; set; }
+
         // There's no reason to send this to the client.
         [JsonIgnore]
         public String GpxData { get; set; }
@@ -42,6 +44,7 @@ namespace SegmentChallengeWeb.Models {
 
     public enum ChallengeType {
         Fastest = 0,
-        MostLaps = 1
+        MostLaps = 1,
+        MultiLap = 2,
     }
 }

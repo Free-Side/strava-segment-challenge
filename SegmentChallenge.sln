@@ -17,6 +17,7 @@ ProjectSection(SolutionItems) = preProject
 	sql\migration_00004.up.sql = sql\migration_00004.up.sql
 	sql\migration_00005.up.sql = sql\migration_00005.up.sql
 	sql\migration_00006.up.sql = sql\migration_00006.up.sql
+	sql\migration_00007.up.sql = sql\migration_00007.up.sql
 EndProjectSection
 EndProject
 Global

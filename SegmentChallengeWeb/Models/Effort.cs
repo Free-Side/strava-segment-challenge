@@ -8,6 +8,9 @@ namespace SegmentChallengeWeb.Models {
         public Int64 AthleteId { get; set; }
         public Int64 ActivityId { get; set; }
         public Int64 SegmentId { get; set; }
+
+        // Note: "ElapsedTime" is a misnomer. This could be moving time depending on the challenge settings.
+        // TODO: Split this into an ElapsedTime and a MovingTime field, and always record both.
         public Int32 ElapsedTime { get; set; }
         public DateTime StartDate { get; set; }
 
