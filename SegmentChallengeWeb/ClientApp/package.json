@@ -1,6 +1,6 @@
 {
   "name": "segment-challenge-web",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "dependencies": {
     "connected-react-router": "6.8.0",
