@@ -313,10 +313,11 @@ footer {
 
   hr {
     margin-top: 2em;
-    margin-bottom: 1em;
+    margin-bottom: 2em;
 
     &::before {
       content: ' or ';
+      font-size: 24px;
       position: absolute;
       margin-top: -16px;
       background-color: white;

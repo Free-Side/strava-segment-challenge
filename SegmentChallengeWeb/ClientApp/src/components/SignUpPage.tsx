@@ -103,10 +103,13 @@ class SignUpPage extends React.PureComponent<SignUpPageProps, SignUpPageState> {
             return (
                 <div className="signup-page-container">
                     <div className="signup-options-container">
+                        <h2>Option 1. Strava</h2>
+                        <p className="signup-option-description"><em>If you have a Strava account please <strong>use this button to sign up using Strava</strong>. You will be redirected to the Strava website or app and prompted to authorize ASBRA to access your activity information. Once you click the authorize button you will be redirected back to this page where you will be prompted to enter some additional information.</em></p>
                         <StravaLoginButton signup={true} returnUrl={this.state.returnUrl} />
                         <hr />
+                        <h2>Option 2. Email Address & Password</h2>
+                        <p className="signup-option-description"><em>Only fill out and submit the form below if you <strong>do not have a Strava account.</strong></em></p>
                         <form className="signup-form">
-                            <h2>Sign Up</h2>
                             <p>In order to participate in challenges we need to know a little bit about you.</p>
                             <div className="user-detail-row">
                                 <label>Email <span className="material-icons"
